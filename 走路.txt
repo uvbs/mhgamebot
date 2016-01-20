@@ -1,0 +1,204 @@
+鼠标左键点击断下
+11016911    E8 6A160000        call    11017F80                                          ; Case 202 (WM_LBUTTONUP) of switch 110166BF
+11016916    8B10               mov     edx, [eax]
+11016918    53                 push    ebx
+11016919    8BC8               mov     ecx, eax                                          ; mhmain_1.110157B0
+1101691B    8B42 0C            mov     eax, [edx+C]
+1101691E    6A 01              push    1
+11016920    FFD0               call    eax                                               ; mhmain_1.110157B0
+11016922    8B35 F4DF8A11      mov     esi, [118ADFF4]
+
+上面
+___:1101669F                 mov     ecx, [ebp+arg_4]
+___:110166A2                 push    esi
+___:110166A3                 push    edi
+___:110166A4                 push    ecx
+___:110166A5                 call    eax ; sub_1119FAC0
+
+110B5D34       6A 64              push    64                                                ; Default case of switch 110B5D41
+110B5D36       6A 00              push    0
+110B5D38       8D5424 14          lea     edx, [esp+14]
+110B5D3C       52                 push    edx
+110B5D3D       6A 02              push    2
+110B5D3F       FFD6               call    esi
+
+
+弹出窗口...
+118AE2DC  2A                                               *
+
+
+11017E60 走路
+
+11017EA4   > /8B06          mov     eax, [esi]
+11017EA6   . |3B46 04       cmp     eax, [esi+4]
+11017EA9     |74 29         je      short 11017ED4
+
+111A2168  |.  FFD2          |call    edx
+111A216A  |.  83C4 04       |add     esp, 4
+111A216D  |>  8B4424 30     |mov     eax, [esp+30]
+111A2171  |.  8B4C24 34     |mov     ecx, [esp+34]
+111A2175  |.  896C24 18     |mov     [esp+18], ebp
+111A2179  |.  894424 5C     |mov     [esp+5C], eax
+
+11016908          6A 01         push    1
+1101690A          FFD0          call    eax                                                              ;  mhmain_1.11018000
+1101690C      |.  E9 BA000000   jmp     110169CB
+
+
+断发包缓冲区时的栈帧
+Call stack of main thread
+Address    Stack      Procedure / arguments                 Called from                   Frame
+0018F79C   1121840F   mhmain_1.114ABD20                     mhmain_1.1121840A             0018F798
+0018F7B4   11219D65   mhmain_1.112183B0                     mhmain_1.11219D60             0018F8D0
+0018F850   111A1690   mhmain_1.11219BE0                     mhmain_1.111A168B             0018F8D0
+
+Call stack of main thread
+Address    Stack      Procedure / arguments                 Called from                   Frame
+0018F738   11219345   mhmain_1.112962B2                     mhmain_1.11219340
+0018F75C   11219408   mhmain_1.11219300                     mhmain_1.11219403
+0018F764   11219C21   mhmain_1.112193B0                     mhmain_1.11219C1C
+0018F7F8   111A2293   mhmain_1.11219BE0                     mhmain_1.111A228E
+
+发包缓冲区
+11748FD0  F6                                               .
+
+
+114ABEA8      8A06            mov     al, [esi]
+114ABEAA      8807            mov     [edi], al
+114ABEAC      8B45 08         mov     eax, [ebp+8]
+114ABEAF      5E              pop     esi
+114ABEB0      5F              pop     edi
+114ABEB1      C9              leave
+114ABEB2      C3              retn
+
+
+send发送缓冲区下内存访问断点的栈帧
+Call stack of main thread
+Address    Stack      Procedure / arguments                 Called from                   Frame
+17526310   1121843F   mhmain_1.114ABD50                     mhmain_1.1121843A             1752630C
+17526328   111B6118   mhmain_1.112183E0                     mhmain_1.111B6113             17526368
+17526340   113ADEED   Includes mhmain_1.111B6118            mhmain_1.113ADEEB             17526368
+1752636C   113B0447   mhmain_1.113ADDD0                     mhmain_1.113B0442             17526368
+175263E4   113ACEED   mhmain_1.113AE2E0                     mhmain_1.113ACEE8             175263E0
+17526404   113AE0F7   mhmain_1.113ACE60                     mhmain_1.113AE0F2             17526400
+17526434   113B0447   mhmain_1.113ADDD0                     mhmain_1.113B0442             17526430
+175264AC   113B1372   mhmain_1.113AE2E0                     mhmain_1.113B136D             175264A8
+175264E4   113C1254   mhmain_1.113B0D80                     mhmain_1.113C124F             175264E0
+1752652C   1139819C   Includes mhmain_1.113C1254            mhmain_1.1139819A             17526528
+17526544   113ACD2C   mhmain_1.11398180                     mhmain_1.113ACD27             17526540
+17526560   11398172   mhmain_1.113ACC80                     mhmain_1.1139816D             1752655C
+17526574   111BB8CD   mhmain_1.11398160                     mhmain_1.111BB8C8             17526570
+17526594   11246123   mhmain_1.111BB820                     mhmain_1.1124611E
+175265E0   112468E2   ? mhmain_1.11245C00                   mhmain_1.112468DD
+
+宠物
+Call stack of main thread
+Address    Stack      Procedure / arguments                 Called from                   Frame
+0018F050   1121843F   mhmain_1.114ABD50                     mhmain_1.1121843A             0018F04C
+0018F068   111B6118   mhmain_1.112183E0                     mhmain_1.111B6113             0018F0A8
+0018F080   113ADEED   Includes mhmain_1.111B6118            mhmain_1.113ADEEB             0018F0A8
+0018F0AC   113B0447   mhmain_1.113ADDD0                     mhmain_1.113B0442             0018F0A8
+0018F124   113ACEED   mhmain_1.113AE2E0                     mhmain_1.113ACEE8             0018F120
+0018F144   113AE0F7   mhmain_1.113ACE60                     mhmain_1.113AE0F2             0018F140
+0018F174   113B0447   mhmain_1.113ADDD0                     mhmain_1.113B0442             0018F170
+0018F1EC   113ACEED   mhmain_1.113AE2E0                     mhmain_1.113ACEE8             0018F1E8
+0018F20C   113AE0F7   mhmain_1.113ACE60                     mhmain_1.113AE0F2             0018F208
+0018F23C   113B0447   mhmain_1.113ADDD0                     mhmain_1.113B0442             0018F238
+0018F2B4   113ACEED   mhmain_1.113AE2E0                     mhmain_1.113ACEE8             0018F2B0
+0018F2D4   113AE0F7   mhmain_1.113ACE60                     mhmain_1.113AE0F2             0018F2D0
+0018F304   113B0447   mhmain_1.113ADDD0                     mhmain_1.113B0442             0018F300
+0018F37C   113ACEED   mhmain_1.113AE2E0                     mhmain_1.113ACEE8             0018F378
+0018F39C   113AE0F7   mhmain_1.113ACE60                     mhmain_1.113AE0F2             0018F398
+0018F3CC   113B0447   mhmain_1.113ADDD0                     mhmain_1.113B0442             0018F3C8
+0018F444   113B1372   mhmain_1.113AE2E0                     mhmain_1.113B136D             0018F440
+0018F47C   113C1254   mhmain_1.113B0D80                     mhmain_1.113C124F             0018F478
+0018F4C4   1139819C   Includes mhmain_1.113C1254            mhmain_1.1139819A             0018F4C0
+0018F4DC   113BE15E   mhmain_1.11398180                     mhmain_1.113BE159             0018F4D8
+0018F70C   1139819C   Includes mhmain_1.113BE15E            mhmain_1.1139819A             0018F708
+0018F724   113ACD2C   mhmain_1.11398180                     mhmain_1.113ACD27             0018F720
+0018F740   111BBBDF   mhmain_1.113ACC80                     mhmain_1.111BBBDA             0018F73C
+0018F760   111EA2CF   mhmain_1.111BBB70                     mhmain_1.111EA2CA
+0018F77C   111F13E3   mhmain_1.11020D90                     mhmain_1.111F13DE
+0018F78C   11020BE4   Includes mhmain_1.111F13E3            mhmain_1.11020BE2
+0018F7D4   1101E257   ? mhmain_1.11020B50                   mhmain_1.1101E252
+
+帮派
+Call stack of main thread
+Address    Stack      Procedure / arguments                 Called from                   Frame
+0018ECD8   1121843F   mhmain_1.114ABD50                     mhmain_1.1121843A             0018ECD4
+0018ECF0   111B6118   mhmain_1.112183E0                     mhmain_1.111B6113             0018ED30
+0018ED08   113ADEED   Includes mhmain_1.111B6118            mhmain_1.113ADEEB             0018ED30
+0018ED34   113B0447   mhmain_1.113ADDD0                     mhmain_1.113B0442             0018ED30
+0018EDAC   113ACEED   mhmain_1.113AE2E0                     mhmain_1.113ACEE8             0018EDA8
+0018EDCC   113AE0F7   mhmain_1.113ACE60                     mhmain_1.113AE0F2             0018EDC8
+0018EDFC   113B0447   mhmain_1.113ADDD0                     mhmain_1.113B0442             0018EDF8
+0018EE74   113ACEED   mhmain_1.113AE2E0                     mhmain_1.113ACEE8             0018EE70
+0018EE94   113AE0F7   mhmain_1.113ACE60                     mhmain_1.113AE0F2             0018EE90
+0018EEC4   113B0447   mhmain_1.113ADDD0                     mhmain_1.113B0442             0018EEC0
+0018EF3C   113ACEED   mhmain_1.113AE2E0                     mhmain_1.113ACEE8             0018EF38
+0018EF5C   113AE0F7   mhmain_1.113ACE60                     mhmain_1.113AE0F2             0018EF58
+0018EF8C   113B0447   mhmain_1.113ADDD0                     mhmain_1.113B0442             0018EF88
+0018F004   113B1372   mhmain_1.113AE2E0                     mhmain_1.113B136D             0018F000
+0018F03C   113ACF4E   mhmain_1.113B0D80                     mhmain_1.113ACF49             0018F038
+0018F07C   113AE0F7   mhmain_1.113ACE60                     mhmain_1.113AE0F2             0018F078
+0018F0AC   113B0447   mhmain_1.113ADDD0                     mhmain_1.113B0442             0018F0A8
+0018F124   113ACEED   mhmain_1.113AE2E0                     mhmain_1.113ACEE8             0018F120
+0018F144   113AE0F7   mhmain_1.113ACE60                     mhmain_1.113AE0F2             0018F140
+0018F174   113B0447   mhmain_1.113ADDD0                     mhmain_1.113B0442             0018F170
+0018F1EC   113ACEED   mhmain_1.113AE2E0                     mhmain_1.113ACEE8             0018F1E8
+0018F20C   113AE0F7   mhmain_1.113ACE60                     mhmain_1.113AE0F2             0018F208
+0018F23C   113B0447   mhmain_1.113ADDD0                     mhmain_1.113B0442             0018F238
+0018F2B4   113ACEED   mhmain_1.113AE2E0                     mhmain_1.113ACEE8             0018F2B0
+0018F2D4   113AE0F7   mhmain_1.113ACE60                     mhmain_1.113AE0F2             0018F2D0
+0018F304   113B0447   mhmain_1.113ADDD0                     mhmain_1.113B0442             0018F300
+0018F37C   113ACEED   mhmain_1.113AE2E0                     mhmain_1.113ACEE8             0018F378
+0018F39C   113AE0F7   mhmain_1.113ACE60                     mhmain_1.113AE0F2             0018F398
+0018F3CC   113B0447   mhmain_1.113ADDD0                     mhmain_1.113B0442             0018F3C8
+0018F444   113B1372   mhmain_1.113AE2E0                     mhmain_1.113B136D             0018F440
+0018F47C   113C1254   mhmain_1.113B0D80                     mhmain_1.113C124F             0018F478
+0018F4C4   1139819C   Includes mhmain_1.113C1254            mhmain_1.1139819A             0018F4C0
+0018F4DC   113BE15E   mhmain_1.11398180                     mhmain_1.113BE159             0018F4D8
+0018F70C   1139819C   Includes mhmain_1.113BE15E            mhmain_1.1139819A             0018F708
+0018F724   113ACD2C   mhmain_1.11398180                     mhmain_1.113ACD27             0018F720
+0018F740   111BBBDF   mhmain_1.113ACC80                     mhmain_1.111BBBDA             0018F73C
+0018F760   111EA2CF   mhmain_1.111BBB70                     mhmain_1.111EA2CA
+0018F77C   111F13E3   mhmain_1.11020D90                     mhmain_1.111F13DE
+0018F78C   11020BE4   Includes mhmain_1.111F13E3            mhmain_1.11020BE2
+0018F7D4   1101E257   ? mhmain_1.11020B50                   mhmain_1.1101E252
+
+//send的断点 栈回溯
+Call stack of main thread
+Address    Stack      Procedure / arguments                 Called from                   Frame
+0018F738   11219375   mhmain_1.112962E2                     mhmain_1.11219370
+0018F75C   11219438   mhmain_1.11219330                     mhmain_1.11219433
+0018F764   11219C51   mhmain_1.112193E0                     mhmain_1.11219C4C
+0018F7F8   111A2293   mhmain_1.11219C10                     mhmain_1.111A228E
+
+
+get_src_data 中对那个变动的内存做写入断点 111B604E
+111B6048    33C0            xor     eax, eax
+111B604A    8B4C24 20       mov     ecx, [esp+20]
+111B604E    A3 C41F8211     mov     [11821FC4], eax
+111B6053    8D4424 04       lea     eax, [esp+4]
+111B6057    50              push    eax
+111B6058    68 B06C5311     push    11536CB0
+111B605D    51              push    ecx
+111B605E    E8 9D3A1D00     call    11389B00
+
+
+
+1124628B    C1E8 1F         ||shr     eax, 1F
+1124628E    03C2            ||add     eax, edx
+11246290    894424 24       ||mov     [esp+24], eax
+11246294    8BD8            ||mov     ebx, eax
+11246296    8BCE            ||mov     ecx, esi
+11246298    E8 C39C0000     ||call    1124FF60
+
+左键按下消息断点
+110168FA  |> \E8 81160000      call    11017F80                         ;  Case 201 (WM_LBUTTONDOWN) of switch 110166BF
+
+
+//断下内存写入 send
+114ABEDA   .  8807          mov     [edi], al
+
+

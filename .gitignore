@@ -1,0 +1,5 @@
+/tester/
+/gamehack/
+/build-mh-Debug/
+*.pro.user
+/build-mh-Release/
