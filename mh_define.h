@@ -46,6 +46,11 @@ const POINT point_task = {479, 139};
 const RECT rect_position = {45, 27, 106, 40};
 
 //游戏按钮
+const POINT point_player = {548, 27};
+const POINT point_pet = {434, 21};
+const POINT point_map = {75, 54};
+
+
 const POINT rect_attack = {313,441};   //攻击
 const POINT rect_tools = {331,467};     //道具
 const POINT rect_tools_close = {554,90};

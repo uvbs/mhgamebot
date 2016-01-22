@@ -18,6 +18,7 @@ public:
 
 
 
+    //×öµãÉ¶.
     void do_task();
     void do_money(){}
 

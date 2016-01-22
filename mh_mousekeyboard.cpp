@@ -10,13 +10,7 @@ int Mouse_keyboard::make_mouse_value(int x, int y)
     v = x;
     y = y << 16;
     v = v + y;
-    return v;
-}
 
-
-Mouse_keyboard::Mouse_keyboard(HWND gamewnd)
-{
-    wnd = gamewnd;
     ratio_x = (double)590/(double)640;
     ratio_y = (double)450/(double)480;
 
@@ -24,61 +18,37 @@ Mouse_keyboard::Mouse_keyboard(HWND gamewnd)
     ry = 0;
     cur_game_x = 0;
     cur_game_y = 0;
-    hdc = ::GetDC(gamewnd);
 
+    return v;
 }
 
-void Mouse_keyboard::test1()
+void Mouse_keyboard::input_event(const char* input)
 {
-//    for(int i = 0; i < 480; i++)
-//    {
-//        click(0, i);
-//    }
+    for(size_t i = 0; i < strlen(input); i++)
+    {
 
-    //选中屏幕左上角?
-    click(0, 0);
-    Sleep(5000);
+        keybd_event(input[i],0,0,0);     //按下a键
+        keybd_event(input[i],0,KEYEVENTF_KEYUP,0);//松开a键
 
-    //右上角
-    click(0, 620);
-    Sleep(5000);
+    }
+
 }
+
+Mouse_keyboard::Mouse_keyboard(HWND gamewnd)
+{
+    wnd = gamewnd;
+    hdc = ::GetDC(gamewnd);
+}
+
 
 void Mouse_keyboard::rclick(int x, int y)
 {
-    //转换成游戏内鼠标坐标
-    int mouse_x = x * ratio_x;
-    int mouse_y = y * ratio_y;
-
-    //加上那个误差
-    mouse_x -= rx;
-    mouse_y -= ry;
-
-    std::vector<int> mouse = Get_mouse_vec(cur_game_x, cur_game_y, mouse_x, mouse_y);
-
-    for(size_t i = 0; i < mouse.size(); i++)
-    {
-        ::SendMessage(wnd, WM_MOUSEMOVE, 0, mouse[i]);
-        //Sleep(7);
-
-        if(i == mouse.size() - 1)
-        {
-            ::PostMessage(wnd, WM_RBUTTONDOWN, 1,mouse[i]);
-            ::PostMessage(wnd, WM_RBUTTONUP, 0,mouse[i]);
-
-            cur_game_x = LOWORD(mouse[i]);
-            cur_game_y = HIWORD(mouse[i]);
-        }
-    }
-
-
-    //需要延迟一下, 这个延迟是等待界面做出响应
-    Sleep(150);
+    //TODO:
 }
 
 void Mouse_keyboard::rclick()
 {
-    rclick(cur_game_x, cur_game_y);
+    //TODO:
 }
 
 void Mouse_keyboard::rclick(const char* image)
@@ -96,83 +66,24 @@ void Mouse_keyboard::rclick(const char* image)
 
 void Mouse_keyboard::click(const char* image)
 {
+    POINT point;
+    if(is_match_pic_in_screen(image, point))
+    {
+        click(point.x, point.y);
+    }
+}
+
+void Mouse_keyboard::click_nofix(const char* image)
+{
 
     POINT point;
     if(is_match_pic_in_screen(image, point))
     {
-        MH_printf("点击:%s", image);
-        click(point.x, point.y);
+        click_nofix(point.x, point.y);
     }
 
 }
 
-
-
-//const POINT right_point_1 = {606,4};
-const POINT chk_point_leftbottom = {40, 456};
-
-//检验指针
-//本来是右上角, 这个血值也会导致不能正常校验的..
-
-void Mouse_keyboard::Right_point()
-{
-    RECT rect;
-    ::GetWindowRect(wnd, &rect);
-
-    const int width = rect.right - rect.left;
-    const int height = rect.bottom - rect.top;
-
-    bool finded =false;
-
-    //鼠标指针移动到左下角匹配
-
-
-    //y
-    for(int i = 445; i < 480; i++)
-    {
-        //x
-        for(int j = 30; j < 70; j++)
-        {
-            //int x = width-j;
-            int v = make_mouse_value(j, i);
-            ::SendMessage(wnd, WM_MOUSEMOVE, 0, v);
-
-            //截图
-            WriteBmp("right.bmp", hdc);
-            Point maxLoc;
-            double maxVal = Match_picture("right.bmp", "rightpoint.png", maxLoc);
-            if(maxVal > 0.9)
-            {
-
-                //应该的x  -  现实的x
-                rx = chk_point_leftbottom.x * ratio_x - j;
-                ry = chk_point_leftbottom.y * ratio_y - i;
-
-                cur_game_x = j;
-                cur_game_y = i;
-
-                finded = true;
-                goto fined;
-
-            }
-        }
-    }
-
-
-
-
-fined:
-
-    if(finded)
-    {
-        MH_printf("妈的匹配到了");
-    }
-    else
-    {
-        std::runtime_error("指针校准初始化失败了你妹啊");
-    }
-
-}
 
 bool Mouse_keyboard::is_match_pic_in_screen(const char *image)
 {
@@ -259,20 +170,26 @@ bool Mouse_keyboard::is_match_pic_in_rect(const char *image, POINT &point, RECT 
     }
 }
 
-bool Mouse_keyboard::is_match_pic_in_point(const char *image, POINT &point, POINT game_wnd_pt)
+
+
+bool Mouse_keyboard::is_match_pic_in_point(const char *image, POINT &point, POINT game_wnd_pt, bool screen_exisit)
 {
 
-    RECT rect;
-    ::GetClientRect(wnd, &rect);
-    rect.left = game_wnd_pt.x;
-    rect.top = game_wnd_pt.y;
+    if(screen_exisit == false)
+    {
+        RECT rect;
+        ::GetClientRect(wnd, &rect);
+        rect.left = game_wnd_pt.x;
+        rect.top = game_wnd_pt.y;
 
-    //取得屏幕图片
-    WriteBmp("screen.bmp", hdc, rect);
+        //取得屏幕图片
+        WriteBmp("screen.bmp", hdc, rect);
+    }
+
     Point maxLoc;
     double maxVal = Match_picture("screen.bmp", image, maxLoc);
 
-    if(maxVal > 0.6)
+    if(maxVal > 0.7)
     {
         Mat img_in = imread(image);
         point.x = maxLoc.x + img_in.cols/2 + game_wnd_pt.x;
@@ -289,6 +206,7 @@ bool Mouse_keyboard::is_match_pic_in_screen(const char *image, POINT &point)
 {
 
     //取得两个对比的图
+    Sleep(100);
     WriteBmp("screen.bmp", hdc);
     Point maxLoc;
     double maxVal = Match_picture("screen.bmp", image, maxLoc);
@@ -308,17 +226,17 @@ bool Mouse_keyboard::is_match_pic_in_screen(const char *image, POINT &point)
     }
 }
 
-void Mouse_keyboard::Rang_move_mouse()
+void Mouse_keyboard::Rand_move_mouse()
 {
     //取得当前坐标到目的的差值
-    int x = rand()%100;
-    int y = rand()%100;
+    int x = rand()%300+100;
+    int y = rand()%300+100;
 
     int v = make_mouse_value(x, y);
     ::SendMessage(wnd, WM_MOUSEMOVE, 0, v);
 
     //需要延迟一下, 这个延迟是等待界面做出响应
-    Sleep(200);
+    Sleep(100);
 }
 
 
@@ -394,14 +312,19 @@ void Mouse_keyboard::click_nofix(int x, int y)
     ::PostMessage(wnd, WM_LBUTTONDOWN, 1,v);
     ::PostMessage(wnd, WM_LBUTTONUP, 0,v);
     Sleep(200);
+    Rand_move_mouse();
 }
 
 //匹配屏幕获取当前鼠标位置
 POINT Mouse_keyboard::Get_cur_mouse()
 {
+
+letstart:
+    Sleep(100);
     WriteBmp("screen.bmp", hdc);
     Point maxLoc;
     bool first_mouse = true;
+    bool third_mouse = false;
     double val = Match_picture("screen.bmp", "pic\\chk\\mouse1.png", maxLoc);
     if(val < 0.9)
     {
@@ -411,7 +334,14 @@ POINT Mouse_keyboard::Get_cur_mouse()
 
     if(val < 0.9)
     {
-        click(100, 100);
+        third_mouse = true;
+        val = Match_picture("screen.bmp", "pic\\chk\\mouse3.png", maxLoc);
+    }
+
+    if(val < 0.9)
+    {
+        Rand_move_mouse();
+        goto letstart;
     }
 
     //减去截取的鼠标图本身的偏差
@@ -420,10 +350,15 @@ POINT Mouse_keyboard::Get_cur_mouse()
         maxLoc.x -= 0;
         maxLoc.y -= 3;
     }
-    else
+    else if(first_mouse == false)
     {
         maxLoc.x -= 17;
         maxLoc.y -= 17;
+    }
+    else if(third_mouse == true)
+    {
+        maxLoc.x -= 2;
+        maxLoc.y -= 3;
     }
 
 
@@ -432,17 +367,10 @@ POINT Mouse_keyboard::Get_cur_mouse()
 }
 
 
-//传进来的是窗口坐标
-//转化成游戏内坐标, 之后用WM_MOUSEMOVE移动
-void Mouse_keyboard::click(int x, int y)
+void Mouse_keyboard::click_move(int x, int y)
 {
 
-    if(cur_game_x == 0 && cur_game_y == 0 && rx == 0 && ry == 0)
-    {
-        click_nofix(x, y);
-        Rang_move_mouse();
-        return;
-    }
+
 
 
     //转换成游戏内鼠标坐标
@@ -457,19 +385,62 @@ void Mouse_keyboard::click(int x, int y)
 
     for(size_t i = 0; i < mouse.size(); i++)
     {
-        ::SendMessage(wnd, WM_MOUSEMOVE, 0, mouse[i]);
-        //Sleep(7);
+        ::PostMessage(wnd, WM_MOUSEMOVE, 0, mouse[i]);
+        Sleep(7);
 
         if(i == mouse.size() - 1)
         {
             ::PostMessage(wnd, WM_LBUTTONDOWN, 1,mouse[i]);
+            Sleep(50);
             ::PostMessage(wnd, WM_LBUTTONUP, 0,mouse[i]);
-
-            cur_game_x = LOWORD(mouse[i]);
-            cur_game_y = HIWORD(mouse[i]);
         }
     }
 
+
+    //需要延迟一下, 这个延迟是等待界面做出响应
+    Sleep(150);
+}
+
+
+//传进来的是窗口坐标
+//转化成游戏内坐标, 之后用WM_MOUSEMOVE移动
+void Mouse_keyboard::click(int x, int y)
+{
+
+
+    POINT now;
+    POINT now_game;
+
+    //获得当前鼠标位置
+    now = Get_cur_mouse();
+    now_game = now;
+    std::vector<int> r = Get_mouse_vec(now.x, now.y, x > 600 ? x-50:x, y);
+    for(size_t i = 0; i < r.size(); i++)
+    {
+        ::PostMessage(wnd, WM_MOUSEMOVE, 0, r[i]);
+        Sleep(2);
+
+        now_game.x = LOWORD(r[i]);
+        now_game.y = HIWORD(r[i]);
+    }
+
+    Sleep(100);
+
+    //就一下
+    now = Get_cur_mouse();
+
+    //逐渐移动
+    //转换成游戏内座标
+    int game_x = now.x * ratio_x;
+    int game_y = now.y * ratio_y;
+
+    //取得误差
+    rx = game_x - now_game.x;
+    ry = game_y - now_game.y;
+    cur_game_x = now_game.x;
+    cur_game_y = now_game.y;
+
+    click_move(x, y);
 
     //需要延迟一下, 这个延迟是等待界面做出响应
     Sleep(150);
