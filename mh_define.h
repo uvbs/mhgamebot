@@ -12,13 +12,13 @@
 //方便注册自己的函数
 #define REGLUAFUN(z, x, y) \
     lua_register(z, #x, y); \
-    MH_printf("注册LUA函数: %s", #x);
+    mhprintf("注册LUA函数: %s", #x);
 
 
 
 
 //玩家几种状态
-enum Player_status
+enum PLAYER_STATUS
 {
     NORMAL,
     COMBAT,

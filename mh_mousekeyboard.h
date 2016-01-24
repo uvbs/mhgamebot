@@ -32,7 +32,6 @@ public:
     bool is_match_pic_in_screen(const char *image, bool screen_exisit = false);
     bool is_match_pic_in_screen(const char *image, POINT &point, bool screen_exisit = false);
     bool is_match_pic_in_point(const char *image, POINT &point, POINT game_wnd_pt, bool screen_exisit = false);
-    bool is_match_pic_in_rect(const char *image, POINT &point, RECT game_wnd_rect);
 
     double Match_picture(std::string img1, const char *img2, cv::Point &maxLoc);
 
@@ -45,6 +44,9 @@ public:
 
     //×¢²álua
     void Regist_lua_fun(lua_State* lua_status);
+
+public:
+    void mhprintf(const char *msg, ...);
 
 
 private:
@@ -77,6 +79,11 @@ private:
     int ry;
     int cur_game_x;
     int cur_game_y;
+
+    std::string player_name;
+
+public:
+    void set_player_name(std::string name);
 };
 
 #endif // MH_MOUSEKEYBOARD_H

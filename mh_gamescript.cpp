@@ -1,5 +1,5 @@
 #include "mh_gamescript.h"
-
+#include <regex>
 
 #define FIRSTTASK(x)\
     if(mouse.is_match_pic_in_point("pic\\task\\"#x, pt, point_task, false))
@@ -8,18 +8,49 @@
     else if(mouse.is_match_pic_in_point("pic\\task\\"#x, pt, point_task, true))
 
 #define ENDTASK \
-    else { MH_printf("什么任务.."); }
+    else { mhprintf("什么任务.."); }
 
 
 GameScriper* GameScriper::_inst = nullptr;
 GameScriper::GameScriper(HWND game_wnd, int id)
-    :mouse(game_wnd, id)
+    :mouse(game_wnd, id),
+      player_name("unknow"),
+      player_level("0")
 {
     script_id = id;
     wnd = game_wnd;
     _inst = this;
     lua_status = nullptr;
     hdc = ::GetDC(wnd);
+}
+
+void GameScriper::mhprintf(const char* msg, ...)
+{
+    static bool can_printf = true;
+tryagain:
+    if(can_printf == true)
+    {
+
+        can_printf = false;
+
+        //需要一个互斥
+        //TODO:
+        printf("%s: ", player_name.c_str());
+
+        va_list va;
+        va_start(va, msg);
+        vprintf(msg, va);
+        va_end(va);
+
+        printf("\n");
+
+        can_printf = true;
+    }
+    else
+    {
+        Sleep(150);
+        goto tryagain;
+    }
 }
 
 
@@ -30,7 +61,7 @@ bool GameScriper::is_in_city(const char* city, bool screen_exist)
     POINT pt;
     if(mouse.is_match_pic_in_screen(city, pt, screen_exist))
     {
-        MH_printf("当前城市 %s..", city);
+        mhprintf("当前城市 %s..", city);
         return true;
     }
 
@@ -57,16 +88,16 @@ void GameScriper::task1to10()
         mouse.Until_stop_run();
         mouse.click(640/2, 480/2);
     }
-    FINDTASK(穿上布衣.png)
-    {
-        mouse.click(rect_tools.x, rect_tools.y);
-        mouse.rclick("pic\\task\\布衣.png");
-    }
-    FINDTASK(穿上布裙.png)
-    {
-        mouse.click(rect_tools.x, rect_tools.y);
-        mouse.rclick("pic\\task\\布裙.png");
-    }
+//    FINDTASK(穿上布衣.png)
+//    {
+//        mouse.click(rect_tools.x, rect_tools.y);
+//        mouse.rclick("pic\\task\\布衣.png");
+//    }
+//    FINDTASK(穿上布裙.png)
+//    {
+//        mouse.click(rect_tools.x, rect_tools.y);
+//        mouse.rclick("pic\\task\\布裙.png");
+//    }
     FINDTASK(孙猎户.png)
     {
         mouse.click(pt.x, pt.y);
@@ -204,8 +235,8 @@ void GameScriper::do_task()
         //::SetActiveWindow(wnd);
         ::SetForegroundWindow(wnd);
 
-        Player_status status = Get_player_status();
-        if(status == Player_status::COMBAT)
+        PLAYER_STATUS status = Get_player_status();
+        if(status == PLAYER_STATUS::COMBAT)
         {
 
             POINT pt;
@@ -215,11 +246,17 @@ void GameScriper::do_task()
                 mouse.click(pt.x, pt.y - 40);
             }
 
+            if(mouse.is_match_pic_in_screen("pic\\task\\点击捕捉.png", pt))
+            {
+                mouse.click("pic\\捕捉.png");
+                mouse.click(pt.x, pt.y - 40);
+            }
+
             //无事才自动战斗
             mouse.click("pic\\自动战斗.png");
 
         }
-        else if(status == Player_status::NORMAL)
+        else if(status == PLAYER_STATUS::NORMAL)
         {
             task1to10();
 
@@ -248,41 +285,47 @@ void GameScriper::Entry_game()
         //登录界面
         if(mouse.is_match_pic_in_screen("pic\\login.png"))
         {
-            MH_printf("当前玩家状态: 登录界面");
             mouse.click_nofix("pic\\entrygame.png");
         }
-        else if(mouse.is_match_pic_in_screen("pic\\srvinfo.png"))
+        else if(mouse.is_match_pic_in_screen("pic\\srvinfo.png", true))
         {
-            MH_printf("当前玩家状态: 服务器信息");
             mouse.click_nofix("pic\\nextstep.png");
         }
-        else if(mouse.is_match_pic_in_screen("pic\\selsrv.png"))
+        else if(mouse.is_match_pic_in_screen("pic\\selsrv.png", true))
         {
-            MH_printf("当前玩家状态: 选择服务器");
             mouse.click_nofix("pic\\nextstep.png");
         }
-        else if(mouse.is_match_pic_in_screen("pic\\inputpw.png"))
+        else if(mouse.is_match_pic_in_screen("pic\\inputpw.png", true))
         {
-            MH_printf("当前玩家状态: 输入密码");
 
         }
-        else if(mouse.is_match_pic_in_screen("pic\\游戏内.png"))
+        else if(mouse.is_match_pic_in_screen("pic\\游戏内.png", true))
         {
+            //获取玩家姓名
+            char title[256];
+            ::GetWindowTextA(wnd, title, 256);
+            mhprintf("%s", title);
+
+            //用正则匹配出来
+            std::regex regex("\-\\s*(.*)[");
+            std::cmatch cmatch;
+            if(std::regex_match(title, cmatch, regex))
+            {
+                player_name = cmatch.str(2);
+                mouse.set_player_name(cmatch.str(2));
+            }
+
             //进入游戏才出来...
-            MH_printf("当前玩家状态: 游戏中");
             break;
         }
-        else if(mouse.is_match_pic_in_screen("pic\\selplayer.png"))
+        else if(mouse.is_match_pic_in_screen("pic\\selplayer.png", true))
         {
-            MH_printf("当前玩家状态: 选择角色");
             mouse.click_nofix("pic\\ok.png");
             mouse.click_nofix("pic\\nextstep.png");
         }
         else
         {
-            //过图?
-            //TODO:
-            MH_printf("未知场景..");
+            mhprintf("未知场景..");
         }
 
         Sleep(500);
@@ -292,28 +335,27 @@ void GameScriper::Entry_game()
 
 
 //获取玩家状态
-Player_status GameScriper::Get_player_status()
+PLAYER_STATUS GameScriper::Get_player_status()
 {
-    POINT pt;
-    if(mouse.is_match_pic_in_screen("pic\\战斗中.png"), false)
+    if(mouse.is_match_pic_in_screen("pic\\战斗中.png"))
     {
-        MH_printf("战斗状态");
-        return Player_status::COMBAT;
+        mhprintf("战斗状态");
+        return PLAYER_STATUS::COMBAT;
     }
-    else if(mouse.is_match_pic_in_screen("pic\\游戏内.png"), false)
+    else if(mouse.is_match_pic_in_screen("pic\\游戏内.png"))
     {
-        MH_printf("平常状态");
-        return Player_status::NORMAL;
+        mhprintf("平常状态");
+        return PLAYER_STATUS::NORMAL;
     }
-    else if(mouse.is_match_pic_in_screen("pic\\体验状态.png", pt, false))
+    else if(mouse.is_match_pic_in_screen("pic\\体验状态.png"))
     {
-        MH_printf("体验状态");
-        return Player_status::NOTIME;
+        mhprintf("体验状态");
+        return PLAYER_STATUS::NOTIME;
     }
-    else if(mouse.is_match_pic_in_screen("pic\\跳过动画.png", pt, false))
+    else if(mouse.is_match_pic_in_screen("pic\\跳过动画.png"))
     {
-        MH_printf("动画状态");
-        return Player_status::GC;
+        mhprintf("动画状态");
+        return PLAYER_STATUS::GC;
     }
     else
     {
@@ -325,7 +367,7 @@ Player_status GameScriper::Get_player_status()
 void GameScriper::Regist_lua_fun()
 {
     //lua
-    MH_printf("加载lua");
+    mhprintf("加载lua");
     if(lua_status == nullptr)
         lua_status = luaL_newstate();
 
@@ -348,25 +390,25 @@ void GameScriper::Regist_lua_fun()
     mouse.Regist_lua_fun(lua_status);
 
 
-    MH_printf("加载lua完成");
+    mhprintf("加载lua完成");
 }
 
 void GameScriper::Run()
 {
     //运行脚本
-    MH_printf("脚本开始执行, id:%d", std::this_thread::get_id());
+    mhprintf("脚本开始执行, id:%d", std::this_thread::get_id());
 
 
     Regist_lua_fun();
 
 
-    MH_printf("开始进入游戏");
+    mhprintf("开始进入游戏");
     Entry_game();
-    MH_printf("进去游戏[完成]");
+    mhprintf("进去游戏[完成]");
 
 
     Script_type type = config.Get_script_type();
-    MH_printf("执行脚本: %s", Script_type_desc[type].str.c_str());
+    mhprintf("执行脚本: %s", Script_type_desc[type].str.c_str());
 
     if(type == Script_type::SMART){
 

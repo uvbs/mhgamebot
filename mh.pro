@@ -20,6 +20,8 @@ LIBS += D:\msys32\mingw32\lib\libopencv_core.dll.a
 LIBS += D:\msys32\mingw32\lib\libopencv_highgui.dll.a
 LIBS += D:\msys32\mingw32\lib\libopencv_imgcodecs.dll.a
 
+
+
 TEMPLATE = app
 
 CONFIG += c++11

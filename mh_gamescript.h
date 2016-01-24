@@ -18,18 +18,19 @@ public:
     GameScriper(HWND game_wnd, int id);
     ~GameScriper(){}
 
+    void mhprintf(const char *msg, ...);
 
     void task1to10();
 
     //做点啥
     void do_task();
     void do_money(){
-        MH_printf("什么都没有..");
+        mhprintf("什么都没有..");
     }
 
     //进去游戏
     void Entry_game();
-    Player_status Get_player_status();
+    PLAYER_STATUS Get_player_status();
     void Run();
 
     bool is_in_city(const char *city, bool screen_exist = false);
@@ -47,6 +48,10 @@ private:
     Mouse_keyboard mouse;
     GameConfig config;
     lua_State *lua_status;
+
+    std::string player_name;   //玩家等级
+    std::string player_level;
+
     //
 private:
     HWND wnd;

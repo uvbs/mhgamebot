@@ -46,7 +46,7 @@ void Mouse_keyboard::Regist_lua_fun(lua_State *lua_status)
         return 0;
     });
 
-    REGLUAFUN(lua_status, "阻塞直到停止奔跑", [](lua_State* L)->int{
+    REGLUAFUN(lua_status, "等待停止奔跑", [](lua_State* L)->int{
         Mouse_keyboard::GetInstance()->Until_stop_run();
     });
 
@@ -65,6 +65,35 @@ void Mouse_keyboard::Regist_lua_fun(lua_State *lua_status)
     });
 
 
+}
+
+void Mouse_keyboard::mhprintf(const char *msg, ...)
+{
+    static bool can_printf = true;
+tryagain:
+    if(can_printf == true)
+    {
+
+        can_printf = false;
+
+        //需要一个互斥
+        //TODO:
+        printf("%s: ", player_name.c_str());
+
+        va_list va;
+        va_start(va, msg);
+        vprintf(msg, va);
+        va_end(va);
+
+        printf("\n");
+
+        can_printf = true;
+    }
+    else
+    {
+        Sleep(150);
+        goto tryagain;
+    }
 }
 
 Mouse_keyboard::Mouse_keyboard(HWND gamewnd, int id)
@@ -96,7 +125,7 @@ void Mouse_keyboard::rclick(const char* image)
     {
         char buf[50];
         sprintf(buf, "rclick error! %s!", image);
-        MH_printf(buf);
+        //mhprintf(buf);
     }
 }
 
@@ -138,7 +167,7 @@ double Mouse_keyboard::Match_picture(std::string img1, const char* img2, cv::Poi
     {
         char buf[30];
         sprintf(buf, "图片%s 不存在", img1);
-        MH_printf(buf);
+        mhprintf(buf);
         std::runtime_error("图片不存在");
     }
 
@@ -146,7 +175,7 @@ double Mouse_keyboard::Match_picture(std::string img1, const char* img2, cv::Poi
     {
         char buf[30];
         sprintf(buf, "图片%s 不存在", img2);
-        MH_printf(buf);
+        mhprintf(buf);
         std::runtime_error("图片不存在");
     }
 
@@ -199,28 +228,6 @@ double Mouse_keyboard::Match_picture(std::string img1, const char* img2, cv::Poi
     return maxVal;
 }
 
-bool Mouse_keyboard::is_match_pic_in_rect(const char *image, POINT &point, RECT game_wnd_rect)
-{
-
-    //取得屏幕图片
-    WriteBmp("screen.bmp", hdc, game_wnd_rect);
-    cv::Point maxLoc;
-    double maxVal = Match_picture("screen.bmp", image, maxLoc);
-
-    if(maxVal > 0.65)
-    {
-        Mat img_in = imread(image);
-        point.x = maxLoc.x + img_in.cols/2 + game_wnd_rect.left;
-        point.y = maxLoc.y + img_in.rows/2 + game_wnd_rect.top;
-        return true;
-    }
-    else
-    {
-        return false;
-    }
-}
-
-
 
 bool Mouse_keyboard::is_match_pic_in_point(const char *image, POINT &point, POINT game_wnd_pt, bool screen_exisit)
 {
@@ -264,7 +271,7 @@ bool Mouse_keyboard::is_match_pic_in_screen(const char *image, POINT &point, boo
     cv::Point maxLoc;
     double maxVal = Match_picture("screen.bmp", image, maxLoc);
 
-    if(maxVal > 0.65)
+    if(maxVal > 0.7)
     {
         Mat img_in = imread(image);
         point.x = maxLoc.x + img_in.cols/2;
@@ -302,7 +309,7 @@ void Mouse_keyboard::Until_stop_run()
     {
         //来一张
         WriteBmp("position1.bmp", hdc, rect_position);
-        Sleep(2500);
+        Sleep(3000);
         WriteBmp("position2.bmp", hdc, rect_position);
 
         cv::Point maxLoc;
@@ -466,7 +473,7 @@ void Mouse_keyboard::click_move(int x, int y, bool lbutton)
 
 
     //需要延迟一下, 这个延迟是等待界面做出响应
-    Sleep(500);
+    Sleep(1000);
 }
 
 
@@ -492,7 +499,7 @@ void Mouse_keyboard::click(int x, int y, bool lbutton)
         now_game.y = HIWORD(r[i]);
     }
 
-    Sleep(500);
+    Sleep(1000);
 
     //就一下
     now = Get_cur_mouse();
@@ -554,6 +561,11 @@ BOOL Mouse_keyboard::WriteBmp(std::string strFile,const std::vector<BYTE> &vtDat
     CloseHandle(hFile);
 
     return TRUE;
+}
+
+void Mouse_keyboard::set_player_name(std::__cxx11::string name)
+{
+    player_name = name;
 }
 
 BOOL Mouse_keyboard::WriteBmp(std::string strFile,HDC hdc)

@@ -11,8 +11,6 @@ using namespace cv;
 #include "mh_define.h"
 
 
-void MH_printf(const char* msg, ...);
-
 
 //±£¥Ê”Œœ∑≈‰÷√
 class GameConfig
