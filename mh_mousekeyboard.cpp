@@ -1,9 +1,13 @@
 #include "mh_mousekeyboard.h"
 #include "mh_function.h"
-#include "mh_writebmp.h"
 
+#include <boost/lexical_cast.hpp>
+#include <string>
+#include <shlwapi.h>
+#include <stdlib.h>
+#include <stdio.h>
 
-
+Mouse_keyboard* Mouse_keyboard::_inst = nullptr;
 int Mouse_keyboard::make_mouse_value(int x, int y)
 {
     int v = 0;
@@ -34,22 +38,52 @@ void Mouse_keyboard::input_event(const char* input)
 
 }
 
-Mouse_keyboard::Mouse_keyboard(HWND gamewnd)
+void Mouse_keyboard::Regist_lua_fun(lua_State *lua_status)
+{
+    REGLUAFUN(lua_status, "点击图片", [](lua_State* L)->int{
+        const char* image = lua_tostring(L, 1);
+        Mouse_keyboard::GetInstance()->click(image);
+        return 0;
+    });
+
+    REGLUAFUN(lua_status, "阻塞直到停止奔跑", [](lua_State* L)->int{
+        Mouse_keyboard::GetInstance()->Until_stop_run();
+    });
+
+    REGLUAFUN(lua_status, "装备物品", [](lua_State* L)->int{
+       const char* str = lua_tostring(L, 1);
+       Mouse_keyboard::GetInstance()->click(rect_tools.x, rect_tools.y);
+       Mouse_keyboard::GetInstance()->click(str);
+       return 0;
+    });
+
+    REGLUAFUN(lua_status, "走向小地图", [](lua_State* L)->int{
+        const char* name = lua_tostring(L, 1);
+        Mouse_keyboard::GetInstance()->click(point_map.x, point_map.y);
+        Mouse_keyboard::GetInstance()->click(name);
+        return 0;
+    });
+
+
+}
+
+Mouse_keyboard::Mouse_keyboard(HWND gamewnd, int id)
 {
     wnd = gamewnd;
     hdc = ::GetDC(gamewnd);
+    _inst = this;
+    script_id = id;
 }
 
 
+//也用来取消攻击状态
 void Mouse_keyboard::rclick(int x, int y)
 {
     //TODO:
+    click(x, y, false);
 }
 
-void Mouse_keyboard::rclick()
-{
-    //TODO:
-}
+
 
 void Mouse_keyboard::rclick(const char* image)
 {
@@ -60,7 +94,9 @@ void Mouse_keyboard::rclick(const char* image)
     }
     else
     {
-        MH_printf("rclick error! no pic match!");
+        char buf[50];
+        sprintf(buf, "rclick error! %s!", image);
+        MH_printf(buf);
     }
 }
 
@@ -85,27 +121,41 @@ void Mouse_keyboard::click_nofix(const char* image)
 }
 
 
-bool Mouse_keyboard::is_match_pic_in_screen(const char *image)
+bool Mouse_keyboard::is_match_pic_in_screen(const char *image, bool screen_exisit)
 {
     POINT pt;
-    return is_match_pic_in_screen(image, pt);
+    return is_match_pic_in_screen(image, pt, screen_exisit);
 }
 
 
-double Mouse_keyboard::Match_picture(const char* img1, const char* img2, Point &maxLoc)
+double Mouse_keyboard::Match_picture(std::string img1, const char* img2, cv::Point &maxLoc)
 {
 
-    //MH_printf("匹配图片: %s - %s", img1, img2);
+    img1.insert(0, boost::lexical_cast<std::string>(script_id));
 
-    if(img1 == nullptr || img2 == nullptr)
-        std::runtime_error("参数错误");
+    //MH_printf("匹配图片: %s - %s", img1, img2);
+    if(::PathFileExistsA(img1.c_str()) == FALSE)
+    {
+        char buf[30];
+        sprintf(buf, "图片%s 不存在", img1);
+        MH_printf(buf);
+        std::runtime_error("图片不存在");
+    }
+
+    if(::PathFileExistsA(img2) == FALSE)
+    {
+        char buf[30];
+        sprintf(buf, "图片%s 不存在", img2);
+        MH_printf(buf);
+        std::runtime_error("图片不存在");
+    }
+
 
     if(wnd == nullptr)
         std::runtime_error("无效的句柄");
 
-    //char img1_fix[40];
-    //sprintf(img1_fix, "%d%s", ::GetCurrentThreadId(), img1);
-    Mat img_screen = imread(img1);
+
+    Mat img_screen = imread(img1.c_str());
     Mat img_in = imread(img2);
     Mat result;
     if(img_in.empty() || img_screen.empty()){
@@ -120,8 +170,8 @@ double Mouse_keyboard::Match_picture(const char* img1, const char* img2, Point &
     /// 通过函数 minMaxLoc 定位最匹配的位置
     double minVal;
     double maxVal;
-    Point minLoc;
-    Point matchLoc;
+    cv::Point minLoc;
+    cv::Point matchLoc;
 
     cv::minMaxLoc( result, &minVal, &maxVal, &minLoc, &maxLoc, Mat() );
 
@@ -154,10 +204,10 @@ bool Mouse_keyboard::is_match_pic_in_rect(const char *image, POINT &point, RECT 
 
     //取得屏幕图片
     WriteBmp("screen.bmp", hdc, game_wnd_rect);
-    Point maxLoc;
+    cv::Point maxLoc;
     double maxVal = Match_picture("screen.bmp", image, maxLoc);
 
-    if(maxVal > 0.6)
+    if(maxVal > 0.65)
     {
         Mat img_in = imread(image);
         point.x = maxLoc.x + img_in.cols/2 + game_wnd_rect.left;
@@ -186,10 +236,10 @@ bool Mouse_keyboard::is_match_pic_in_point(const char *image, POINT &point, POIN
         WriteBmp("screen.bmp", hdc, rect);
     }
 
-    Point maxLoc;
+    cv::Point maxLoc;
     double maxVal = Match_picture("screen.bmp", image, maxLoc);
 
-    if(maxVal > 0.7)
+    if(maxVal > 0.65)
     {
         Mat img_in = imread(image);
         point.x = maxLoc.x + img_in.cols/2 + game_wnd_pt.x;
@@ -202,16 +252,19 @@ bool Mouse_keyboard::is_match_pic_in_point(const char *image, POINT &point, POIN
     }
 }
 
-bool Mouse_keyboard::is_match_pic_in_screen(const char *image, POINT &point)
+bool Mouse_keyboard::is_match_pic_in_screen(const char *image, POINT &point, bool screen_exisit)
 {
+    //两个对比的图
 
-    //取得两个对比的图
-    Sleep(100);
-    WriteBmp("screen.bmp", hdc);
-    Point maxLoc;
+    if(screen_exisit == false)
+    {
+        WriteBmp("screen.bmp", hdc);
+    }
+
+    cv::Point maxLoc;
     double maxVal = Match_picture("screen.bmp", image, maxLoc);
 
-    if(maxVal > 0.7)
+    if(maxVal > 0.65)
     {
         Mat img_in = imread(image);
         point.x = maxLoc.x + img_in.cols/2;
@@ -229,28 +282,31 @@ bool Mouse_keyboard::is_match_pic_in_screen(const char *image, POINT &point)
 void Mouse_keyboard::Rand_move_mouse()
 {
     //取得当前坐标到目的的差值
-    int x = rand()%300+100;
-    int y = rand()%300+100;
+    int x = rand()%200+100;
+    int y = rand()%200+100;
 
     int v = make_mouse_value(x, y);
-    ::SendMessage(wnd, WM_MOUSEMOVE, 0, v);
+    ::PostMessage(wnd, WM_MOUSEMOVE, 0, v);
 
     //需要延迟一下, 这个延迟是等待界面做出响应
-    Sleep(100);
+    Sleep(500);
 }
 
 
 //TODO: 需要一个超时
 void Mouse_keyboard::Until_stop_run()
 {
+    std::string img2 = "position2.bmp";
+    img2.insert(0, boost::lexical_cast<std::string>(script_id));
     while(1)
     {
         //来一张
         WriteBmp("position1.bmp", hdc, rect_position);
-        Sleep(2000);
+        Sleep(2500);
         WriteBmp("position2.bmp", hdc, rect_position);
-        Point maxLoc;
-        double isMatch = Match_picture("position1.bmp", "position2.bmp", maxLoc);
+
+        cv::Point maxLoc;
+        double isMatch = Match_picture("position1.bmp", img2.c_str(), maxLoc);
         if(isMatch > 0.9)
         {
             break;
@@ -263,6 +319,11 @@ void Mouse_keyboard::Until_stop_run()
 std::vector<int> Mouse_keyboard::Get_mouse_vec(int x, int y, int x2, int y2)
 {
     std::vector<int> mouse_vec;
+
+    if(x2 > 640 || y2 > 480)
+    {
+        std::runtime_error("目的坐标异常");
+    }
 
 
     if(x < x2)
@@ -308,7 +369,7 @@ std::vector<int> Mouse_keyboard::Get_mouse_vec(int x, int y, int x2, int y2)
 void Mouse_keyboard::click_nofix(int x, int y)
 {
     int v = make_mouse_value(x, y);
-    ::SendMessage(wnd, WM_MOUSEMOVE, 0, v);
+    ::PostMessage(wnd, WM_MOUSEMOVE, 0, v);
     ::PostMessage(wnd, WM_LBUTTONDOWN, 1,v);
     ::PostMessage(wnd, WM_LBUTTONUP, 0,v);
     Sleep(200);
@@ -320,9 +381,8 @@ POINT Mouse_keyboard::Get_cur_mouse()
 {
 
 letstart:
-    Sleep(100);
     WriteBmp("screen.bmp", hdc);
-    Point maxLoc;
+    cv::Point maxLoc;
     bool first_mouse = true;
     bool third_mouse = false;
     double val = Match_picture("screen.bmp", "pic\\chk\\mouse1.png", maxLoc);
@@ -367,11 +427,11 @@ letstart:
 }
 
 
-void Mouse_keyboard::click_move(int x, int y)
+void Mouse_keyboard::click_move(int x, int y, bool lbutton)
 {
 
-
-
+    if(x > 640 || y > 480)
+        std::runtime_error("click_move() 目的坐标异常");
 
     //转换成游戏内鼠标坐标
     int mouse_x = x * ratio_x;
@@ -386,25 +446,33 @@ void Mouse_keyboard::click_move(int x, int y)
     for(size_t i = 0; i < mouse.size(); i++)
     {
         ::PostMessage(wnd, WM_MOUSEMOVE, 0, mouse[i]);
-        Sleep(7);
+        Sleep(10);
 
         if(i == mouse.size() - 1)
         {
-            ::PostMessage(wnd, WM_LBUTTONDOWN, 1,mouse[i]);
-            Sleep(50);
-            ::PostMessage(wnd, WM_LBUTTONUP, 0,mouse[i]);
+            if(lbutton)
+                ::PostMessage(wnd, WM_LBUTTONDOWN, 1,mouse[i]);
+            else
+                ::PostMessage(wnd, WM_RBUTTONDOWN, 1, mouse[i]);
+
+            Sleep(10);
+
+            if(lbutton)
+                ::PostMessage(wnd, WM_LBUTTONUP, 0,mouse[i]);
+            else
+                ::PostMessage(wnd, WM_RBUTTONUP, 0, mouse[i]);
         }
     }
 
 
     //需要延迟一下, 这个延迟是等待界面做出响应
-    Sleep(150);
+    Sleep(500);
 }
 
 
 //传进来的是窗口坐标
 //转化成游戏内坐标, 之后用WM_MOUSEMOVE移动
-void Mouse_keyboard::click(int x, int y)
+void Mouse_keyboard::click(int x, int y, bool lbutton)
 {
 
 
@@ -414,7 +482,7 @@ void Mouse_keyboard::click(int x, int y)
     //获得当前鼠标位置
     now = Get_cur_mouse();
     now_game = now;
-    std::vector<int> r = Get_mouse_vec(now.x, now.y, x > 600 ? x-50:x, y);
+    std::vector<int> r = Get_mouse_vec(now.x, now.y, x > 550 ? x-70:x, y > 450 ? y - 70: y);
     for(size_t i = 0; i < r.size(); i++)
     {
         ::PostMessage(wnd, WM_MOUSEMOVE, 0, r[i]);
@@ -424,7 +492,7 @@ void Mouse_keyboard::click(int x, int y)
         now_game.y = HIWORD(r[i]);
     }
 
-    Sleep(100);
+    Sleep(500);
 
     //就一下
     now = Get_cur_mouse();
@@ -440,10 +508,7 @@ void Mouse_keyboard::click(int x, int y)
     cur_game_x = now_game.x;
     cur_game_y = now_game.y;
 
-    click_move(x, y);
-
-    //需要延迟一下, 这个延迟是等待界面做出响应
-    Sleep(150);
+    click_move(x, y, lbutton);
 }
 
 void Mouse_keyboard::input(char* msg)
@@ -451,6 +516,128 @@ void Mouse_keyboard::input(char* msg)
 
     for(size_t j = 0; j < strlen(msg); j++){
         ::PostMessage(wnd, WM_CHAR, msg[j], 1);
+        Sleep(10);
     }
 
 }
+
+
+BOOL Mouse_keyboard::WriteBmp(std::string strFile,const std::vector<BYTE> &vtData,const SIZE &sizeImg)
+{
+
+    BITMAPINFOHEADER bmInfoHeader = {0};
+    bmInfoHeader.biSize = sizeof(BITMAPINFOHEADER);
+    bmInfoHeader.biWidth = sizeImg.cx;
+    bmInfoHeader.biHeight = sizeImg.cy;
+    bmInfoHeader.biPlanes = 1;
+    bmInfoHeader.biBitCount = 24;
+
+    //Bimap file header in order to write bmp file
+    BITMAPFILEHEADER bmFileHeader = {0};
+    bmFileHeader.bfType = 0x4d42;  //bmp
+    bmFileHeader.bfOffBits = sizeof(BITMAPFILEHEADER) + sizeof(BITMAPINFOHEADER);
+    bmFileHeader.bfSize = bmFileHeader.bfOffBits + ((bmInfoHeader.biWidth * bmInfoHeader.biHeight) * 3); ///3=(24 / 8)
+
+
+    strFile.insert(0, boost::lexical_cast<std::string>(script_id));
+    HANDLE hFile = CreateFileA(strFile.c_str(),GENERIC_WRITE,0,NULL,CREATE_ALWAYS,FILE_ATTRIBUTE_NORMAL,NULL);
+    if(hFile == INVALID_HANDLE_VALUE)
+    {
+        return FALSE;
+    }
+
+    DWORD dwWrite = 0;
+    WriteFile(hFile,&bmFileHeader,sizeof(BITMAPFILEHEADER),&dwWrite,NULL);
+    WriteFile(hFile,&bmInfoHeader, sizeof(BITMAPINFOHEADER),&dwWrite,NULL);
+    WriteFile(hFile,&vtData[0], vtData.size(),&dwWrite,NULL);
+
+    CloseHandle(hFile);
+
+    return TRUE;
+}
+
+BOOL Mouse_keyboard::WriteBmp(std::string strFile,HDC hdc)
+{
+    int iWidth = 640;
+    int iHeight = 480;
+    RECT rcDC = {0,0,iWidth,iHeight};
+
+    return WriteBmp(strFile,hdc,rcDC);
+}
+
+BOOL Mouse_keyboard::WriteBmp(std::string strFile,HDC hdc,const RECT &rcDC)
+{
+
+    //根据线程id重新命名, 避免冲突
+    //char buf[40];
+    //sprintf(buf, "%d%s", ::GetCurrentThreadId(), strFile.c_str());
+
+    BOOL bRes = FALSE;
+    BITMAPINFO bmpInfo = {0};
+    BYTE *pData = NULL;
+    SIZE sizeImg = {0};
+    HBITMAP hBmp = NULL;
+    std::vector<BYTE> vtData;
+    HGDIOBJ hOldObj = NULL;
+    HDC hdcMem = NULL;
+
+    //Initilaize the bitmap information
+    bmpInfo.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+    bmpInfo.bmiHeader.biWidth = rcDC.right - rcDC.left;
+    bmpInfo.bmiHeader.biHeight = rcDC.bottom - rcDC.top;
+    bmpInfo.bmiHeader.biPlanes = 1;
+    bmpInfo.bmiHeader.biBitCount = 24;
+
+    //Create the compatible DC to get the data
+    hdcMem = CreateCompatibleDC(hdc);
+    if(hdcMem == NULL)
+    {
+        goto EXIT;
+    }
+
+    //Get the data from the memory DC
+    hBmp = CreateDIBSection(hdcMem, &bmpInfo,DIB_RGB_COLORS,reinterpret_cast<VOID **>(&pData),NULL,0);
+    if(hBmp == NULL)
+    {
+        goto EXIT;
+    }
+    hOldObj = SelectObject(hdcMem, hBmp);
+
+    //Draw to the memory DC
+    sizeImg.cx = bmpInfo.bmiHeader.biWidth;
+    sizeImg.cy = bmpInfo.bmiHeader.biHeight;
+    StretchBlt(hdcMem,
+                0,
+                0,
+                sizeImg.cx,
+                sizeImg.cy,
+                hdc,
+                rcDC.left,
+                rcDC.top,
+                rcDC.right - rcDC.left + 1,
+                rcDC.bottom - rcDC.top + 1,
+                SRCCOPY);
+
+
+    vtData.resize(sizeImg.cx * sizeImg.cy * 3);
+    memcpy(&vtData[0], pData, vtData.size());
+    bRes = WriteBmp(strFile.c_str(), vtData, sizeImg);
+
+    SelectObject(hdcMem, hOldObj);
+
+
+EXIT:
+    if(hBmp != NULL)
+    {
+        DeleteObject(hBmp);
+    }
+
+    if(hdcMem != NULL)
+    {
+        DeleteDC(hdcMem);
+    }
+
+    return bRes;
+}
+
+

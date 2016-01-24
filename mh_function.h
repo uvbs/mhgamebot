@@ -8,19 +8,10 @@
 #include <opencv2/opencv.hpp>
 using namespace cv;
 
-
 #include "mh_define.h"
-
-//游戏窗口
-extern std::vector<HWND> Game_wnd_vec;
-extern std::vector<std::thread> Game_thread;
 
 
 void MH_printf(const char* msg, ...);
-int find_game_window();
-
-
-
 
 
 //保存游戏配置

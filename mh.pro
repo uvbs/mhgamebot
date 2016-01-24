@@ -11,6 +11,8 @@ CONFIG -= app_bundle
 LIBS += libgdi32
 LIBS += libuser32
 LIBS += libshell32
+LIBS += libshlwapi
+LIBS += liblua
 
 
 LIBS += D:\msys32\mingw32\lib\libopencv_imgproc.dll.a
@@ -26,7 +28,6 @@ CONFIG += c++11
 SOURCES += main.cpp \
     mh_function.cpp \
     mh_gamescript.cpp \
-    mh_writebmp.cpp \
     mh_mousekeyboard.cpp \
     scriptapp.cpp
 
@@ -34,7 +35,6 @@ HEADERS += \
     mh_define.h \
     mh_function.h \
     mh_gamescript.h \
-    mh_writebmp.h \
     mh_mousekeyboard.h \
     scriptapp.h
 

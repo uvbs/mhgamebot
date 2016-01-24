@@ -1,6 +1,4 @@
 #include "mh_function.h"
-#include "mh_writebmp.h"
-
 
 
 
@@ -28,7 +26,7 @@ tryagain:
     }
     else
     {
-        Sleep(50);
+        Sleep(150);
         goto tryagain;
     }
 }

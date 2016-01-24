@@ -41,6 +41,7 @@ void ScriptApp::Run()
 {
     MH_printf("½Å±¾Ö´ÐÐ..");
 
+
     int counts = find_game_window();
     if(counts == 0)
     {
@@ -64,7 +65,7 @@ void ScriptApp::Run()
         {
             try
             {
-                GameScriper script(Game_wnd_vec[i]);
+                GameScriper script(Game_wnd_vec[i], i);
                 script.Run();
             }
             catch(std::runtime_error &e)

@@ -8,13 +8,25 @@
 #include <windows.h>
 #include <string>
 
+
+//方便注册自己的函数
+#define REGLUAFUN(z, x, y) \
+    lua_register(z, #x, y); \
+    MH_printf("注册LUA函数: %s", #x);
+
+
+
+
 //玩家几种状态
 enum Player_status
 {
     NORMAL,
     COMBAT,
     PAOSHANG, //跑商
-    BIAO  //镖
+    BIAO,  //镖
+    NOTIME, //体验状态
+    GC,     //动画状态
+    ATTACK  //点击了选中鼠标状态
 };
 
 //脚本的类型, 设置优先级
@@ -49,7 +61,7 @@ const RECT rect_position = {45, 27, 106, 40};
 const POINT point_player = {548, 27};
 const POINT point_pet = {434, 21};
 const POINT point_map = {75, 54};
-
+const POINT point_player_healher = {610, 10};
 
 const POINT rect_attack = {313,441};   //攻击
 const POINT rect_tools = {331,467};     //道具
