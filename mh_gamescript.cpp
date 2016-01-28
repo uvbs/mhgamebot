@@ -1,27 +1,37 @@
 #include "mh_gamescript.h"
 #include <regex>
+#include <thread>
+#include <boost/lexical_cast.hpp>
+
+#define MHCHATWND "梦幻西游2 聊天窗口"
+
 
 #define FIRSTTASK(x)\
-    if(mouse.is_match_pic_in_point("pic\\task\\"#x, pt, point_task, false))
+    if(mouse.is_match_pic_in_screen("pic\\task\\"#x, pt))
 
 #define FINDTASK(x) \
-    else if(mouse.is_match_pic_in_point("pic\\task\\"#x, pt, point_task, true))
+    else if(mouse.is_match_pic_in_screen("pic\\task\\"#x, pt))
 
 #define ENDTASK \
-    else { mhprintf("什么任务.."); }
+    else { mhprintf("什么任务.."); mouse.Rand_move_mouse(); }
 
-
-GameScriper* GameScriper::_inst = nullptr;
-GameScriper::GameScriper(HWND game_wnd, int id)
-    :mouse(game_wnd, id),
-      player_name("unknow"),
-      player_level("0")
+std::map<lua_State*, GameScriper*> GameScriper::inst_map;
+GameScriper::GameScriper(HWND game_wnd, int id):
+    mouse(game_wnd, id),
+    player_name(std::string("窗口")+boost::lexical_cast<std::string>(id)),
+    player_level("0")
 {
     script_id = id;
     wnd = game_wnd;
-    _inst = this;
     lua_status = nullptr;
-    hdc = ::GetDC(wnd);
+    if(lua_status == nullptr)
+        lua_status = luaL_newstate();
+
+    if(lua_status == nullptr)
+        throw std::runtime_error("创建lua状态失败");
+
+    //将这个lua状态和这个实例绑定
+    inst_map[lua_status] = this;
 }
 
 void GameScriper::mhprintf(const char* msg, ...)
@@ -54,12 +64,12 @@ tryagain:
 }
 
 
-bool GameScriper::is_in_city(const char* city, bool screen_exist)
+bool GameScriper::is_in_city(const char* city)
 {
 
 
     POINT pt;
-    if(mouse.is_match_pic_in_screen(city, pt, screen_exist))
+    if(mouse.is_match_pic_in_screen(city, pt))
     {
         mhprintf("当前城市 %s..", city);
         return true;
@@ -88,16 +98,6 @@ void GameScriper::task1to10()
         mouse.Until_stop_run();
         mouse.click(640/2, 480/2);
     }
-//    FINDTASK(穿上布衣.png)
-//    {
-//        mouse.click(rect_tools.x, rect_tools.y);
-//        mouse.rclick("pic\\task\\布衣.png");
-//    }
-//    FINDTASK(穿上布裙.png)
-//    {
-//        mouse.click(rect_tools.x, rect_tools.y);
-//        mouse.rclick("pic\\task\\布裙.png");
-//    }
     FINDTASK(孙猎户.png)
     {
         mouse.click(pt.x, pt.y);
@@ -107,6 +107,7 @@ void GameScriper::task1to10()
     FINDTASK(道具.png)
     {
         mouse.click(rect_tools.x, rect_tools.y);
+        mouse.rclick("pic\\task\\青铜短剑.png");
         mouse.rclick("pic\\task\\折扇.png");
         mouse.rclick("pic\\task\\布衣.png");
         mouse.rclick("pic\\task\\布裙.png");
@@ -122,15 +123,15 @@ void GameScriper::task1to10()
         //阻塞, 直到停止奔跑
         mouse.Until_stop_run();
 
-        if(is_in_city("pic\\map\\建邺城.png", false)){
+        if(is_in_city("pic\\map\\建邺城.png")){
            mouse.click(640, 480);
         }
-        else if(is_in_city("pic\\map\\东海湾.png", true)){
+        else if(is_in_city("pic\\map\\东海湾.png")){
             mouse.click(400, 0);
         }
-        else if(is_in_city("pic\\map\\桃源村.png", true)){
+        else if(is_in_city("pic\\map\\桃源村.png")){
             mouse.click(269,253);
-            mouse.click("pic\\对话框-战斗.png");
+            mouse.Dialog_click("pic\\对话框-战斗.png");
         }
 
     }
@@ -162,11 +163,7 @@ void GameScriper::task1to10()
         mouse.click(pt.x, pt.y);
         mouse.Until_stop_run();
         mouse.click(640/2, 480/2);
-
-        if(mouse.is_match_pic_in_screen("pic\\对话框-战斗.png", pt))
-        {
-            mouse.click(pt.x, pt.y);
-        }
+        mouse.Dialog_click("pic\\对话框-战斗.png");
     }
     FINDTASK(召唤兽参战.png)
     {
@@ -178,7 +175,7 @@ void GameScriper::task1to10()
         mouse.click(pt.x, pt.y);
         mouse.Until_stop_run();
         mouse.click(640/2, 480/2);
-        mouse.click("pic\\task\\玄大夫治病.png");
+        mouse.Dialog_click("pic\\task\\玄大夫治病.png");
     }
     FINDTASK(雨画师什么事.png)
     {
@@ -202,7 +199,7 @@ void GameScriper::task1to10()
         mouse.click(pt.x, pt.y);
         mouse.Until_stop_run();
         mouse.click(640/2, 480/2);
-        mouse.click("pic\\task\\这就上船啦.png");
+        mouse.Dialog_click("pic\\task\\这就上船啦.png");
     }
     FINDTASK(告别夏大叔.png)
     {
@@ -225,6 +222,25 @@ void GameScriper::task1to10()
 
 }
 
+
+//检测离线, 网络断线
+bool GameScriper::check_offline()
+{
+
+    HWND wnd = FindWindowExA(NULL, NULL, nullptr, "网络错误");
+    if(wnd)
+    {
+        mhprintf("检测到网络断线...");
+        mhprintf("尝试重启..");
+
+        ::SendMessageA(wnd, WM_COMMAND, 1, 0);
+        return true;
+    }
+
+
+    return false;
+}
+
 void GameScriper::do_task()
 {
     //匹配任务
@@ -232,43 +248,49 @@ void GameScriper::do_task()
     while(1)
     {
 
-        //::SetActiveWindow(wnd);
-        ::SetForegroundWindow(wnd);
-
-        PLAYER_STATUS status = Get_player_status();
-        if(status == PLAYER_STATUS::COMBAT)
+        try
         {
+            if(check_offline())
+                break;
 
-            POINT pt;
-            if(mouse.is_match_pic_in_screen("pic\\task\\捕捉-狸.png", pt))
+            PLAYER_STATUS status = Get_player_status();
+            if(status == PLAYER_STATUS::COMBAT)
             {
-                mouse.click("pic\\捕捉.png");
-                mouse.click(pt.x, pt.y - 40);
-            }
+                //有菜单出现再进行操作
+                if(mouse.is_match_pic_in_screen("pic\\task\\战斗-防御.png"))
+                {
+                    POINT pt;
+                    if(mouse.is_match_pic_in_screen("pic\\task\\捕捉-狸.png", pt))
+                    {
+                        mouse.click("pic\\捕捉.png");
+                        mouse.click(pt.x, pt.y - 50);
+                        continue;
+                    }
 
-            if(mouse.is_match_pic_in_screen("pic\\task\\点击捕捉.png", pt))
+                    //无事才自动战斗
+                    mouse.click("pic\\自动战斗.png");
+                }
+
+            }
+            else if(status == PLAYER_STATUS::NORMAL)
             {
-                mouse.click("pic\\捕捉.png");
-                mouse.click(pt.x, pt.y - 40);
+                //关对话框...
+                mouse.click("pic\\关闭.png");
+                mouse.click("pic\\关闭1.png");
+                mouse.click("pic\\关闭2.png");
+                mouse.click("pic\\取消.png");
+
+                task1to10();
             }
-
-            //无事才自动战斗
-            mouse.click("pic\\自动战斗.png");
-
         }
-        else if(status == PLAYER_STATUS::NORMAL)
+        catch(exception_xy &e)
         {
-            task1to10();
-
-            //关对话框...
-            mouse.click("pic\\关闭.png");
-            mouse.click("pic\\关闭1.png");
-            mouse.click("pic\\关闭2.png");
-            mouse.click("pic\\取消.png");
+            mhprintf("%s, 重新遍历任务", e.what());
         }
-
-
-
+        catch(exception_status &e)
+        {
+            mhprintf("%s, 重新尝试一次", e.what());
+        }
     }
 }
 
@@ -287,38 +309,42 @@ void GameScriper::Entry_game()
         {
             mouse.click_nofix("pic\\entrygame.png");
         }
-        else if(mouse.is_match_pic_in_screen("pic\\srvinfo.png", true))
+        else if(mouse.is_match_pic_in_screen("pic\\srvinfo.png"))
         {
             mouse.click_nofix("pic\\nextstep.png");
         }
-        else if(mouse.is_match_pic_in_screen("pic\\selsrv.png", true))
+        else if(mouse.is_match_pic_in_screen("pic\\selsrv.png"))
         {
             mouse.click_nofix("pic\\nextstep.png");
         }
-        else if(mouse.is_match_pic_in_screen("pic\\inputpw.png", true))
+        else if(mouse.is_match_pic_in_screen("pic\\inputpw.png"))
         {
 
         }
-        else if(mouse.is_match_pic_in_screen("pic\\游戏内.png", true))
+        else if(mouse.is_match_pic_in_screen("pic\\游戏内.png"))
         {
             //获取玩家姓名
             char title[256];
             ::GetWindowTextA(wnd, title, 256);
-            mhprintf("%s", title);
+            //mhprintf("%s", title);
+
 
             //用正则匹配出来
-            std::regex regex("\-\\s*(.*)[");
+            std::regex regex(R"(.*-\s?(.+)\[\d+\].*)");
             std::cmatch cmatch;
             if(std::regex_match(title, cmatch, regex))
             {
-                player_name = cmatch.str(2);
-                mouse.set_player_name(cmatch.str(2));
+                player_name = cmatch[1];
+                mouse.set_player_name(cmatch[1]);
+
+                //debug
+                //mhprintf("%s", cmatch[1]);
             }
 
             //进入游戏才出来...
             break;
         }
-        else if(mouse.is_match_pic_in_screen("pic\\selplayer.png", true))
+        else if(mouse.is_match_pic_in_screen("pic\\selplayer.png"))
         {
             mouse.click_nofix("pic\\ok.png");
             mouse.click_nofix("pic\\nextstep.png");
@@ -328,7 +354,7 @@ void GameScriper::Entry_game()
             mhprintf("未知场景..");
         }
 
-        Sleep(500);
+        Sleep(200);
     }
 
 }
@@ -359,44 +385,33 @@ PLAYER_STATUS GameScriper::Get_player_status()
     }
     else
     {
-        std::runtime_error("未知的玩家状态");
+        throw exception_status("未知的玩家状态");
     }
 
 }
 
 void GameScriper::Regist_lua_fun()
 {
-    //lua
-    mhprintf("加载lua");
-    if(lua_status == nullptr)
-        lua_status = luaL_newstate();
-
-    if(lua_status == nullptr) std::runtime_error("创建lua状态失败");
-
-
 
     REGLUAFUN(lua_status, "获取玩家状态", [](lua_State *L)->int{
-        GameScriper::GetInstance()->do_money();
+        GameScriper::Get_instance(L)->do_money();
         return 0;
     });
 
     REGLUAFUN(lua_status, "当前城市", [](lua_State *L)->int{
         const char* city = lua_tostring(L, 1);
-        bool isin = GameScriper::GetInstance()->is_in_city(city);
+        bool isin = GameScriper::Get_instance(L)->is_in_city(city);
         lua_pushboolean(L, isin);
         return 1;
     });
 
     mouse.Regist_lua_fun(lua_status);
-
-
-    mhprintf("加载lua完成");
 }
 
 void GameScriper::Run()
 {
     //运行脚本
-    mhprintf("脚本开始执行, id:%d", std::this_thread::get_id());
+    mhprintf("%d脚本执行", std::this_thread::get_id());
 
 
     Regist_lua_fun();
@@ -420,7 +435,7 @@ void GameScriper::Run()
         do_task();
     }
     else{
-        std::runtime_error("未知脚本类型");
+        throw std::runtime_error("未知脚本类型");
     }
 
 }

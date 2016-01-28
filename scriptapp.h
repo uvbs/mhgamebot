@@ -16,6 +16,7 @@ public:
     bool launcher_game(const char* username, const char* pw);
 
 private:
+    std::vector<HWND> Game_chat_vec;
     std::vector<HWND> Game_wnd_vec;
     std::vector<std::thread> Game_thread;
 
@@ -30,7 +31,7 @@ private:
 public:
     static ScriptApp* GetInstance(){
         if(_inst == nullptr)
-            std::runtime_error("no instance ScriptApp");
+            throw std::runtime_error("no instance ScriptApp");
 
         return _inst;
     }
@@ -38,7 +39,8 @@ public:
 
 public:
     void Run();
-    int find_game_window();
+    int find_game_window(char* classname);
+    int hide_chat_window();
 };
 
 #endif // SCRIPTAPP_H

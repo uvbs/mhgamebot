@@ -7,7 +7,7 @@
 
 
 #include "mh_define.h"
-#include "mh_function.h"
+#include "mh_config.h"
 #include "mh_mousekeyboard.h"
 
 //表示一个控制窗口的脚本
@@ -33,17 +33,10 @@ public:
     PLAYER_STATUS Get_player_status();
     void Run();
 
-    bool is_in_city(const char *city, bool screen_exist = false);
-
-    static GameScriper* GetInstance(){
-        if(_inst == nullptr)
-            std::runtime_error("没初始化的 GameScript");
-        return _inst;
-    }
-
-    static GameScriper* _inst;
+    bool is_in_city(const char *city);
 
     void Regist_lua_fun();
+    bool check_offline();
 private:
     Mouse_keyboard mouse;
     GameConfig config;
@@ -52,10 +45,17 @@ private:
     std::string player_name;   //玩家等级
     std::string player_level;
 
+    static GameScriper* Get_instance(lua_State* L)
+    {
+        return inst_map[L];
+    }
+
+
     //
 private:
+    static std::map<lua_State*, GameScriper*> inst_map;
     HWND wnd;
-    HDC hdc;
+//    HDC hdc;
     int script_id;
 };
 

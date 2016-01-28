@@ -1,8 +1,8 @@
 #include "scriptapp.h"
-#include "mh_function.h"
+#include "mh_config.h"
 #include "mh_gamescript.h"
 
-
+#define MHCHATWNDCLASS    "XYWZ_CHAT"
 
 ScriptApp* ScriptApp::_inst = nullptr;
 ScriptApp::ScriptApp()
@@ -40,24 +40,39 @@ tryagain:
     }
     else
     {
-        Sleep(150);
+        Sleep(50);
         goto tryagain;
     }
 }
 
+int ScriptApp::hide_chat_window()
+{
+    HWND wnd = FindWindowExA(NULL, NULL, MHCHATWNDCLASS, NULL);
+    if(wnd != NULL){
+        for(;;){
+            ShowWindow(wnd, SW_HIDE);
 
-int ScriptApp::find_game_window()
+            wnd = FindWindowExA(NULL, wnd, MHCHATWNDCLASS, NULL);
+            if(wnd == NULL) break;
+        }
+
+    }
+
+    return 0;
+}
+
+int ScriptApp::find_game_window(char* classname)
 {
 
     //清空窗口集合
     Game_wnd_vec.clear();
 
-    HWND wnd = FindWindowEx(NULL, NULL, GAME_WND_CLASS, NULL);
+    HWND wnd = FindWindowExA(NULL, NULL, classname, NULL);
     if(wnd != NULL){
         for(;;){
             Game_wnd_vec.push_back(wnd);
 
-            wnd = FindWindowEx(NULL, wnd, GAME_WND_CLASS, NULL);
+            wnd = FindWindowExA(NULL, wnd, classname, NULL);
             if(wnd == NULL) break;
         }
 
@@ -72,8 +87,7 @@ void ScriptApp::Run()
 {
     mhprintf("脚本执行..");
 
-
-    int counts = find_game_window();
+    int counts = find_game_window(GAME_WND_CLASS);
     if(counts == 0)
     {
         mhprintf("没有找到游戏窗口.");
@@ -81,6 +95,8 @@ void ScriptApp::Run()
         launcher_game("username", "password");
     }
 
+    hide_chat_window();
+    mhprintf("总共%d个游戏窗口", Game_wnd_vec.size());
 
     //遍历这台电脑上所有游戏窗口
     for(size_t i = 0; i < Game_wnd_vec.size(); i++)
@@ -89,7 +105,6 @@ void ScriptApp::Run()
         char title[256];
         ::GetWindowTextA(Game_wnd_vec[i], title, 256);
 
-        mhprintf("窗口标题: %s", title);
 
         //为每个窗口分配一个线程单独操作
         Game_thread.push_back(std::thread([=]()
@@ -101,7 +116,7 @@ void ScriptApp::Run()
             }
             catch(std::runtime_error &e)
             {
-                printf(e.what());
+                mhprintf(e.what());
             }
             catch(...)
             {

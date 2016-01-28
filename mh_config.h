@@ -3,10 +3,7 @@
 
 #include <vector>
 #include <Windows.h>
-#include <thread>
 
-#include <opencv2/opencv.hpp>
-using namespace cv;
 
 #include "mh_define.h"
 
@@ -18,7 +15,7 @@ class GameConfig
 public:
     GameConfig(){
         //Ä¬ÈÏÁ·¼¶
-        type = Script_type::LEVEL;
+        type = LEVEL;
     }
     ~GameConfig(){}
 

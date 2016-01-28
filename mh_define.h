@@ -3,18 +3,30 @@
 
 #define GAME_LAUNCHER  "my.exe"
 #define GAME_NAME "mhmain.exe"
-#define GAME_WND_CLASS L"WSGAME"
+#define GAME_WND_CLASS "WSGAME"
 
 #include <windows.h>
 #include <string>
-
+#include <stdexcept>
 
 //方便注册自己的函数
 #define REGLUAFUN(z, x, y) \
-    lua_register(z, #x, y); \
-    mhprintf("注册LUA函数: %s", #x);
+    lua_register(z, #x, y);
 
 
+class exception_status: public std::runtime_error
+{
+public:
+    exception_status(std::string str):
+        std::runtime_error(str){}
+};
+
+class exception_xy: public std::runtime_error
+{
+public:
+    exception_xy(std::string str):
+        std::runtime_error(str){}
+};
 
 
 //玩家几种状态
@@ -41,20 +53,20 @@ enum Script_type
 
 struct SCRIPT_TYPE_DESC
 {
-    Script_type type;
+    enum Script_type type;
     std::string str;
 };
 
 const SCRIPT_TYPE_DESC Script_type_desc[] =
 {
-    {Script_type::LEVEL, "等级"},
-    {Script_type::MONEY, "金币"},
-    {Script_type::JIAOMAI, "叫卖"},
-    {Script_type::SMART, "智能"}
+    {LEVEL, "等级"},
+    {MONEY, "金币"},
+    {JIAOMAI, "叫卖"},
+    {SMART, "智能"}
 };
 
 
-const POINT point_task = {479, 139};
+const RECT rect_task = {470, 140, 640, 480};
 const RECT rect_position = {45, 27, 106, 40};
 
 //游戏按钮
@@ -65,23 +77,7 @@ const POINT point_player_healher = {610, 10};
 
 const POINT rect_attack = {313,441};   //攻击
 const POINT rect_tools = {331,467};     //道具
-const POINT rect_tools_close = {554,90};
-const POINT rect_tools_grid_1 = {310,156};
-const POINT rect_tools_grid_2 = {373,156};
-const POINT rect_tools_grid_3 = {419,156};
-const POINT rect_give = {365,451};
-const POINT rect_jiaoyi = {389,454};
-const POINT rect_party = {410,454};
-const POINT rect_pet = {422,442};
-const POINT rect_task = {444,439};
-const POINT rect_friend = {511,442};
-const POINT rect_system = {};
 
-const POINT rect_entrygame = {564, 156};
-const POINT rect_entrygame_nextstep = {565, 412};
-const POINT rect_entrygame_selectsrv = {336, 220};
-const POINT rect_entrygame_selectsrv1 = {267, 350};
-const POINT rect_entrygame_selectsrv2 = {336, 220};
 
 
 

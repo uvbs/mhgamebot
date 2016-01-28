@@ -28,15 +28,15 @@ CONFIG += c++11
 
 
 SOURCES += main.cpp \
-    mh_function.cpp \
     mh_gamescript.cpp \
     mh_mousekeyboard.cpp \
-    scriptapp.cpp
+    scriptapp.cpp \
+    mh_config.cpp
 
 HEADERS += \
     mh_define.h \
-    mh_function.h \
     mh_gamescript.h \
     mh_mousekeyboard.h \
-    scriptapp.h
+    scriptapp.h \
+    mh_config.h
 
