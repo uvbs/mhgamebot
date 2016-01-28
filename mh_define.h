@@ -14,6 +14,13 @@
     lua_register(z, #x, y);
 
 
+struct GAME_WND_INFO
+{
+    HWND wnd;
+    DWORD tid;
+    DWORD pid;
+};
+
 class exception_status: public std::runtime_error
 {
 public:

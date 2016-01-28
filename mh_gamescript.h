@@ -37,6 +37,19 @@ public:
 
     void Regist_lua_fun();
     bool check_offline();
+
+
+public:
+    Mouse_keyboard* Get_mouse()
+    {
+        return &mouse;
+    }
+
+    GameConfig* Get_config()
+    {
+        return &config;
+    }
+
 private:
     Mouse_keyboard mouse;
     GameConfig config;
@@ -45,6 +58,7 @@ private:
     std::string player_name;   //Íæ¼ÒµÈ¼¶
     std::string player_level;
 
+public:
     static GameScriper* Get_instance(lua_State* L)
     {
         return inst_map[L];

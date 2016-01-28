@@ -61,18 +61,18 @@ int ScriptApp::hide_chat_window()
     return 0;
 }
 
-int ScriptApp::find_game_window(char* classname)
+int ScriptApp::find_game_window(const std::string& classname)
 {
 
     //清空窗口集合
     Game_wnd_vec.clear();
 
-    HWND wnd = FindWindowExA(NULL, NULL, classname, NULL);
+    HWND wnd = FindWindowExA(NULL, NULL, classname.c_str(), NULL);
     if(wnd != NULL){
         for(;;){
             Game_wnd_vec.push_back(wnd);
 
-            wnd = FindWindowExA(NULL, wnd, classname, NULL);
+            wnd = FindWindowExA(NULL, wnd, classname.c_str(), NULL);
             if(wnd == NULL) break;
         }
 
@@ -81,18 +81,37 @@ int ScriptApp::find_game_window(char* classname)
     return Game_wnd_vec.size();
 }
 
+HANDLE ScriptApp::GetProcessHandle(int nID)//通过进程ID获取进程句柄
+{
+    return OpenProcess(PROCESS_ALL_ACCESS, FALSE, nID);
+}
 
+
+//关闭所有窗口
+void ScriptApp::Close_all_game()
+{
+    find_game_window(GAME_WND_CLASS);
+    for(int i = 0; i < Game_wnd_vec.size(); i++)
+    {
+        HWND wnd = Game_wnd_vec[i];
+        DWORD pid;
+        ::GetWindowThreadProcessId(wnd, &pid);
+        HANDLE process = GetProcessHandle(pid);
+        ::TerminateProcess(process, 0);
+    }
+}
 
 void ScriptApp::Run()
 {
     mhprintf("脚本执行..");
 
-    int counts = find_game_window(GAME_WND_CLASS);
-    if(counts == 0)
+    find_game_window(GAME_WND_CLASS);
+    if(Game_wnd_vec.size() == 0)
     {
         mhprintf("没有找到游戏窗口.");
         mhprintf("尝试开启几个游戏");
         launcher_game("username", "password");
+        return;
     }
 
     hide_chat_window();

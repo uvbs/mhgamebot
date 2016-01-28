@@ -1,5 +1,7 @@
 #include "mh_mousekeyboard.h"
 #include "mh_config.h"
+#include "mh_gamescript.h"
+
 
 #include <boost/lexical_cast.hpp>
 #include <windows.h>
@@ -10,7 +12,7 @@
 
 
 
-Mouse_keyboard* Mouse_keyboard::_inst = nullptr;
+
 int Mouse_keyboard::make_mouse_value(int x, int y)
 {
     int v = 0;
@@ -47,34 +49,34 @@ void Mouse_keyboard::Regist_lua_fun(lua_State *lua_status)
 {
     REGLUAFUN(lua_status, "点击图片", [](lua_State* L)->int{
         const char* image = lua_tostring(L, 1);
-        Mouse_keyboard::GetInstance()->click(image);
+       GameScriper::Get_instance(L)->Get_mouse()->click(image);
         return 0;
     });
 
     REGLUAFUN(lua_status, "等待停止奔跑", [](lua_State* L)->int{
-        Mouse_keyboard::GetInstance()->Until_stop_run();
+        GameScriper::Get_instance(L)->Get_mouse()->Until_stop_run();
         return 0;
     });
 
     REGLUAFUN(lua_status, "装备物品", [](lua_State* L)->int{
        const char* str = lua_tostring(L, 1);
-       Mouse_keyboard::GetInstance()->click(rect_tools.x, rect_tools.y);
-       Mouse_keyboard::GetInstance()->click(str);
+       GameScriper::Get_instance(L)->Get_mouse()->click(rect_tools.x, rect_tools.y);
+       GameScriper::Get_instance(L)->Get_mouse()->click(str);
        return 0;
     });
 
     REGLUAFUN(lua_status, "走向小地图", [](lua_State* L)->int{
         const char* name = lua_tostring(L, 1);
-        Mouse_keyboard::GetInstance()->click(point_map.x, point_map.y);
-        Mouse_keyboard::GetInstance()->click(name);
+        GameScriper::Get_instance(L)->Get_mouse()->click(point_map.x, point_map.y);
+        GameScriper::Get_instance(L)->Get_mouse()->click(name);
         return 0;
     });
 
     REGLUAFUN(lua_status, "点击对话框中的", [](lua_State* L)->int{
         const char* img = lua_tostring(L, 1);
         //前置窗口
-        ::BringWindowToTop(Mouse_keyboard::GetInstance()->get_game_wnd());
-        Mouse_keyboard::GetInstance()->click(img);
+        ::BringWindowToTop(GameScriper::Get_instance(L)->Get_mouse()->get_game_wnd());
+        GameScriper::Get_instance(L)->Get_mouse()->click(img);
         return 0;
     });
 
@@ -114,7 +116,6 @@ Mouse_keyboard::Mouse_keyboard(HWND gamewnd, int id):
 {
     wnd = gamewnd;
     hdc = ::GetDC(gamewnd);
-    _inst = this;
     script_id = id;
 
     ratio_x = (double)590/(double)640;

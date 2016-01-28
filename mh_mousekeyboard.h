@@ -71,18 +71,10 @@ private:
     int make_mouse_value(int x, int y);
 
 public:
-    static Mouse_keyboard* GetInstance(){
-        if(_inst == nullptr)
-            throw std::runtime_error("没初始化的 Mouse_Keyboard");
-        return _inst;
-    }
-
     std::vector<uchar> Get_screen_data();
     std::vector<uchar> Get_screen_data(const RECT &rcDC);
     bool Write_bmp_to_file(std::string file, const RECT &rect);
 
-private:
-    static Mouse_keyboard* _inst;
 
 private:
     HWND wnd;
@@ -100,7 +92,7 @@ private:
     int cur_game_y;
 
     std::string player_name;
-    static std::map<lua_State*, Mouse_keyboard*> inst_map;
+
 public:
     void set_player_name(std::string name);
 
