@@ -37,7 +37,7 @@ void MainWindow::update_search_game_wnd()
         ui->listWidget_game_wnd->addItem(QString::fromLocal8Bit(title));
     }
 
-    ui->label_game_counts->setText(QString("游戏窗口数量 %1 ").arg(wndlist.size()));
+    ui->label_game_counts->setText(QString("游戏窗口数量: %1 ").arg(wndlist.size()));
 }
 
 void MainWindow::on_pushButton_config_clicked()
