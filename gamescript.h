@@ -1,4 +1,4 @@
-#ifndef MH_GAMESCRIPT_H
+﻿#ifndef MH_GAMESCRIPT_H
 #define MH_GAMESCRIPT_H
 
 
@@ -6,11 +6,8 @@
 #include <lua.hpp>
 #include <list>
 #include <boost/lexical_cast.hpp>
-#include <windows.h>
 #include <string>
 #include <shlwapi.h>
-#include <stdlib.h>
-#include <stdio.h>
 #include <map>
 #include <opencv2/opencv.hpp>
 
@@ -37,19 +34,18 @@ public:
     }
 
     //进去游戏
-    void Entry_game();
-    PLAYER_STATUS Get_player_status();
-    void Run();
+    void entry_game();
+    PLAYER_STATUS get_player_status();
+    void run();
 
     bool is_in_city(const char *city);
 
-    void Regist_lua_fun();
+    void regist_lua_fun();
     bool check_offline();
     void test_lua(const char* err);
 
 public:
-    GameConfig* Get_config()
-    {
+    GameConfig* get_config(){
         return &config;
     }
 
@@ -63,14 +59,11 @@ private:
 
 
 public:
-    static GameScriper* Get_instance(lua_State* L)
-    {
+    static GameScriper* get_instance(lua_State* L){
         return inst_map[L];
     }
 
 
-    //
-    void add_lua_func(const char *funcname);
     void readLuaArray(lua_State *L);
 private:
     static std::map<lua_State*, GameScriper*> inst_map;
@@ -108,15 +101,15 @@ private:
     double Match_picture(const std::vector<uchar>& img1, const std::vector<uchar>& img2, cv::Point &maxLoc);
 
 
-    POINT Get_cur_mouse();
-    void Rand_move_mouse();
-    void Until_stop_run();
+    POINT get_cur_mouse();
+    void rand_move_mouse();
+    void until_stop_run();
 
 
     void input_event(const char *input);
 
     //注册lua
-    void Regist_lua_fun(lua_State* lua_status);
+    void regist_lua_fun(lua_State* lua_status);
 
 public:
     HWND get_game_wnd(){
@@ -124,13 +117,12 @@ public:
     }
 
 private:
-    std::vector<int> Get_mouse_vec(int x, int y, int x2, int y2);
+    std::vector<int> get_mouse_vec(int x, int y, int x2, int y2);
     int make_mouse_value(int x, int y);
 
 public:
-    std::vector<uchar> Get_screen_data();
-    std::vector<uchar> Get_screen_data(const RECT &rcDC);
-    bool Write_bmp_to_file(std::string file, const RECT &rect);
+    std::vector<uchar> get_screen_data();
+    std::vector<uchar> get_screen_data(const RECT &rcDC);
 
 
 private:
@@ -146,8 +138,11 @@ private:
     int cur_game_x;
     int cur_game_y;
 
+    void close_game_wnd_stuff();
 public:
     void set_player_name(std::string name);
+    void call_lua_func(const char *name);
+    void load_lua_file(const char *name);
 };
 
 

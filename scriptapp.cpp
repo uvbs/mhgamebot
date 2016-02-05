@@ -1,4 +1,4 @@
-#include "scriptapp.h"
+﻿#include "scriptapp.h"
 #include "mh_config.h"
 #include "gamescript.h"
 
@@ -81,14 +81,14 @@ int ScriptApp::find_game_window(const std::string& classname)
     return Game_wnd_vec.size();
 }
 
-HANDLE ScriptApp::GetProcessHandle(int nID)//通过进程ID获取进程句柄
+HANDLE ScriptApp::get_process_handle(int nID)//通过进程ID获取进程句柄
 {
     return OpenProcess(PROCESS_ALL_ACCESS, FALSE, nID);
 }
 
 
 //关闭所有窗口
-void ScriptApp::Close_all_game()
+void ScriptApp::close_all_game()
 {
     find_game_window(GAME_WND_CLASS);
     for(size_t i = 0; i < Game_wnd_vec.size(); i++)
@@ -96,19 +96,14 @@ void ScriptApp::Close_all_game()
         HWND wnd = Game_wnd_vec[i];
         DWORD pid;
         ::GetWindowThreadProcessId(wnd, &pid);
-        HANDLE process = GetProcessHandle(pid);
+        HANDLE process = get_process_handle(pid);
         ::TerminateProcess(process, 0);
     }
 }
 
-void ScriptApp::Run()
+void ScriptApp::run()
 {
     mhprintf("脚本执行..");
-
-//    char module_path[256];
-//    ::GetModuleFileNameA(NULL, module_path, 256);
-//    ::PathRemoveFileSpecA(module_path);
-//    ::SetCurrentDirectoryA(module_path);
 
     find_game_window(GAME_WND_CLASS);
     if(Game_wnd_vec.size() == 0)
@@ -136,7 +131,7 @@ void ScriptApp::Run()
             try
             {
                 GameScriper script(Game_wnd_vec[i], i);
-                script.Run();
+                script.run();
             }
             catch(const std::runtime_error &e)
             {

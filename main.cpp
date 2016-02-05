@@ -1,10 +1,10 @@
-#include "scriptapp.h"
+﻿#include "scriptapp.h"
 #include <locale>
 
 int main(int argc, char *argv[])
 {
     ScriptApp app;
-    app.Run();
+    app.run();
     return 0;
 }
 

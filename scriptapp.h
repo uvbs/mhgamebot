@@ -1,4 +1,4 @@
-#ifndef SCRIPTAPP_H
+﻿#ifndef SCRIPTAPP_H
 #define SCRIPTAPP_H
 
 
@@ -26,11 +26,11 @@ public:
     void mhprintf(const char *msg, ...);
 
 public:
-    void Run();
+    void run();
     int find_game_window(const std::string& classname);
     int hide_chat_window();
-    HANDLE GetProcessHandle(int nID);
-    void Close_all_game();
+    HANDLE get_process_handle(int nID);
+    void close_all_game();
 };
 
 #endif // SCRIPTAPP_H
