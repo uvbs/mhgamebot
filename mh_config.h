@@ -5,18 +5,18 @@
 #include <Windows.h>
 
 
-#include "mh_define.h"
+#include "define.h"
 
 
 
-//±£´æÓÎÏ·ÅäÖÃ
-class GameConfig
+//ä¿å­˜æ¸¸æˆé…ç½®
+struct GameConfig
 {
-public:
-    GameConfig(){
-        //Ä¬ÈÏÁ·¼¶
-        type = LEVEL;
-    }
+
+    GameConfig():
+        lua_txt_name("task.lua"),
+        type(LEVEL){}
+
     ~GameConfig(){}
 
     bool save_to_file()
@@ -29,18 +29,9 @@ public:
     }
 
 
-    Script_type Get_script_type() {
-        return this->type;
-    }
-
-    //ÉèÖÃ½Å±¾ÀàĞÍ
-    void Set_script_type(Script_type type){
-        this->type = type;
-    }
-
-private:
     Script_type type;
-    std::string srv_name;  //ÇøÃû³Æ
+    std::string srv_name;  //åŒºåç§°
+    std::string lua_txt_name; //è„šæœ¬åç§°
 };
 
 

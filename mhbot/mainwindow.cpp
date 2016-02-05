@@ -29,15 +29,15 @@ MainWindow::~MainWindow()
 void MainWindow::update_search_game_wnd()
 {
 
-    auto&& wndlist = app.Get_game_wnd_list();
-    for(auto i = wndlist.begin(); i != wndlist.end(); i++)
-    {
-        char title[100];
-        ::GetWindowTextA(i->wnd, title, 100);
-        ui->listWidget_game_wnd->addItem(QString::fromLocal8Bit(title));
-    }
+//    auto&& wndlist = app.Get_game_wnd_list();
+//    for(auto i = wndlist.begin(); i != wndlist.end(); i++)
+//    {
+//        char title[100];
+//        ::GetWindowTextA(i->wnd, title, 100);
+//        ui->listWidget_game_wnd->addItem(QString::fromLocal8Bit(title));
+//    }
 
-    ui->label_game_counts->setText(QString("游戏窗口数量: %1 ").arg(wndlist.size()));
+//    ui->label_game_counts->setText(QString("游戏窗口数量: %1 ").arg(wndlist.size()));
 }
 
 void MainWindow::on_pushButton_config_clicked()

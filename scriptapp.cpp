@@ -1,13 +1,12 @@
 #include "scriptapp.h"
 #include "mh_config.h"
-#include "mh_gamescript.h"
+#include "gamescript.h"
 
-#define MHCHATWNDCLASS    "XYWZ_CHAT"
+#include <shlwapi.h>
 
-ScriptApp* ScriptApp::_inst = nullptr;
+
 ScriptApp::ScriptApp()
 {
-    _inst = this;
 }
 
 bool ScriptApp::launcher_game(const char *username, const char *pw)
@@ -15,6 +14,7 @@ bool ScriptApp::launcher_game(const char *username, const char *pw)
 
     return false;
 }
+
 
 void ScriptApp::mhprintf(const char *msg, ...)
 {
@@ -25,9 +25,9 @@ tryagain:
 
         can_printf = false;
 
-        //ĞèÒªÒ»¸ö»¥³â
+        //éœ€è¦ä¸€ä¸ªäº’æ–¥
         //TODO:
-        printf("½Å±¾: ");
+        printf("è„šæœ¬: ");
 
         va_list va;
         va_start(va, msg);
@@ -64,7 +64,7 @@ int ScriptApp::hide_chat_window()
 int ScriptApp::find_game_window(const std::string& classname)
 {
 
-    //Çå¿Õ´°¿Ú¼¯ºÏ
+    //æ¸…ç©ºçª—å£é›†åˆ
     Game_wnd_vec.clear();
 
     HWND wnd = FindWindowExA(NULL, NULL, classname.c_str(), NULL);
@@ -81,17 +81,17 @@ int ScriptApp::find_game_window(const std::string& classname)
     return Game_wnd_vec.size();
 }
 
-HANDLE ScriptApp::GetProcessHandle(int nID)//Í¨¹ı½ø³ÌID»ñÈ¡½ø³Ì¾ä±ú
+HANDLE ScriptApp::GetProcessHandle(int nID)//é€šè¿‡è¿›ç¨‹IDè·å–è¿›ç¨‹å¥æŸ„
 {
     return OpenProcess(PROCESS_ALL_ACCESS, FALSE, nID);
 }
 
 
-//¹Ø±ÕËùÓĞ´°¿Ú
+//å…³é—­æ‰€æœ‰çª—å£
 void ScriptApp::Close_all_game()
 {
     find_game_window(GAME_WND_CLASS);
-    for(int i = 0; i < Game_wnd_vec.size(); i++)
+    for(size_t i = 0; i < Game_wnd_vec.size(); i++)
     {
         HWND wnd = Game_wnd_vec[i];
         DWORD pid;
@@ -103,21 +103,26 @@ void ScriptApp::Close_all_game()
 
 void ScriptApp::Run()
 {
-    mhprintf("½Å±¾Ö´ĞĞ..");
+    mhprintf("è„šæœ¬æ‰§è¡Œ..");
+
+//    char module_path[256];
+//    ::GetModuleFileNameA(NULL, module_path, 256);
+//    ::PathRemoveFileSpecA(module_path);
+//    ::SetCurrentDirectoryA(module_path);
 
     find_game_window(GAME_WND_CLASS);
     if(Game_wnd_vec.size() == 0)
     {
-        mhprintf("Ã»ÓĞÕÒµ½ÓÎÏ·´°¿Ú.");
-        mhprintf("³¢ÊÔ¿ªÆô¼¸¸öÓÎÏ·");
+        mhprintf("æ²¡æœ‰æ‰¾åˆ°æ¸¸æˆçª—å£.");
+        mhprintf("å°è¯•å¼€å¯å‡ ä¸ªæ¸¸æˆ");
         launcher_game("username", "password");
         return;
     }
 
     hide_chat_window();
-    mhprintf("×Ü¹²%d¸öÓÎÏ·´°¿Ú", Game_wnd_vec.size());
+    mhprintf("æ£€æµ‹åˆ°%dä¸ªæ¸¸æˆçª—å£", Game_wnd_vec.size());
 
-    //±éÀúÕâÌ¨µçÄÔÉÏËùÓĞÓÎÏ·´°¿Ú
+    //éå†è¿™å°ç”µè„‘ä¸Šæ‰€æœ‰æ¸¸æˆçª—å£
     for(size_t i = 0; i < Game_wnd_vec.size(); i++)
     {
 
@@ -125,7 +130,7 @@ void ScriptApp::Run()
         ::GetWindowTextA(Game_wnd_vec[i], title, 256);
 
 
-        //ÎªÃ¿¸ö´°¿Ú·ÖÅäÒ»¸öÏß³Ìµ¥¶À²Ù×÷
+        //ä¸ºæ¯ä¸ªçª—å£åˆ†é…ä¸€ä¸ªçº¿ç¨‹å•ç‹¬æ“ä½œ
         Game_thread.push_back(std::thread([=]()
         {
             try
@@ -133,22 +138,22 @@ void ScriptApp::Run()
                 GameScriper script(Game_wnd_vec[i], i);
                 script.Run();
             }
-            catch(std::runtime_error &e)
+            catch(const std::runtime_error &e)
             {
                 mhprintf(e.what());
             }
             catch(...)
             {
-                mhprintf("Î´ÖªÒì³£!");
+                mhprintf("æœªçŸ¥å¼‚å¸¸!");
             }
         }));
     }
 
-    //µÈ´ıÏß³ÌÈ«²¿ÍË³ö
+    //ç­‰å¾…çº¿ç¨‹å…¨éƒ¨é€€å‡º
     for(size_t i = 0; i < Game_thread.size(); i++)
     {
         Game_thread[i].join();
     }
 
-    mhprintf("½Å±¾ÍË³ö...");
+    mhprintf("è„šæœ¬é€€å‡º...");
 }

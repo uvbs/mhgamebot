@@ -5,16 +5,16 @@
 #include <windows.h>
 #include <vector>
 #include <thread>
-#include <list>
 
-#include "../mh_define.h"
+
+#include "define.h"
 
 class ScriptApp
 {
 public:
     ScriptApp();
 
-    //加载游戏
+    //鍔犺浇娓告垙
     bool launcher_game(const char* username, const char* pw);
 
 private:
@@ -23,38 +23,7 @@ private:
     std::vector<std::thread> Game_thread;
 
 public:
-    std::list<GAME_WND_INFO> Get_game_wnd_list()
-    {
-        std::list<GAME_WND_INFO> infolist;
-        find_game_window(GAME_WND_CLASS);
-        for(auto i = Game_wnd_vec.begin(); i != Game_wnd_vec.end(); i++)
-        {
-            GAME_WND_INFO wndinfo;
-            DWORD pid;
-            ::GetWindowThreadProcessId(*i, &pid);
-            wndinfo.wnd = *i;
-            wndinfo.pid =pid;
-            infolist.push_back(wndinfo);
-        }
-
-        return infolist;
-    }
-
-public:
     void mhprintf(const char *msg, ...);
-
-private:
-    //单例
-    static ScriptApp* _inst;
-
-public:
-    static ScriptApp* GetInstance(){
-        if(_inst == nullptr)
-            throw std::runtime_error("no instance ScriptApp");
-
-        return _inst;
-    }
-
 
 public:
     void Run();

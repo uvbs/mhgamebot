@@ -1,42 +1,33 @@
-QT -= core
-QT -= gui
 
 
+TEMPLATE = app
 
-TARGET = mh
-CONFIG += console
+
+CONFIG += console c++11
 CONFIG -= app_bundle
-
+CONFIG -= qt
 
 LIBS += libgdi32
 LIBS += libuser32
 LIBS += libshell32
 LIBS += libshlwapi
-LIBS += liblua
 
+INCLUDEPATH += C:\msys32\usr\src\lua-5.3.2_fixCN\src
+LIBS += C:\msys32\usr\src\lua-5.3.2_fixCN\src\liblua.a
 
-LIBS += D:\msys32\mingw32\lib\libopencv_imgproc.dll.a
-LIBS += D:\msys32\mingw32\lib\libopencv_core.dll.a
-LIBS += D:\msys32\mingw32\lib\libopencv_highgui.dll.a
-LIBS += D:\msys32\mingw32\lib\libopencv_imgcodecs.dll.a
-
-
-
-TEMPLATE = app
-
-CONFIG += c++11
+LIBS += C:\msys32\mingw32\lib\libopencv_core.dll.a
+LIBS += C:\msys32\mingw32\lib\libopencv_imgproc.dll.a
+LIBS += C:\msys32\mingw32\lib\libopencv_imgcodecs.dll.a
 
 
 SOURCES += main.cpp \
-    mh_gamescript.cpp \
-    mh_mousekeyboard.cpp \
     scriptapp.cpp \
-    mh_config.cpp
+    gamescript.cpp \
+    config.cpp
 
 HEADERS += \
-    mh_define.h \
-    mh_gamescript.h \
-    mh_mousekeyboard.h \
     scriptapp.h \
-    mh_config.h
+    config.h \
+    define.h \
+    gamescript.h
 

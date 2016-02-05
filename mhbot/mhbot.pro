@@ -13,15 +13,21 @@ TEMPLATE = app
 
 CONFIG += c++11
 
-LIBS += libshlwapi
-LIBS += liblua
+LIBS += shlwapi.lib
+LIBS += user32.lib
+LIBS += gdi32.lib
 
 
-LIBS += D:\msys32\mingw32\lib\libopencv_imgproc.dll.a
-LIBS += D:\msys32\mingw32\lib\libopencv_core.dll.a
-LIBS += D:\msys32\mingw32\lib\libopencv_highgui.dll.a
-LIBS += D:\msys32\mingw32\lib\libopencv_imgcodecs.dll.a
+LIBS += C:\library\lua\lua53.lib
 
+
+INCLUDEPATH += C:\library\lua\include
+INCLUDEPATH += C:\library\opencv\build\include
+INCLUDEPATH += C:\library\boost_1_60_0
+
+
+LIBS += C:\library\opencv\build\x64\vc12\lib\opencv_ts300d.lib
+LIBS += C:\library\opencv\build\x64\vc12\lib\opencv_world300d.lib
 
 SOURCES += main.cpp\
         mainwindow.cpp \
