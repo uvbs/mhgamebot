@@ -83,7 +83,7 @@ private:
 
 
     //npc对话中的点击( 会设置焦点 )
-    void Dialog_click(const char *img);
+    void dialog_click(const char *img);
 
 
     //输入字符 WM_CHAR
@@ -95,10 +95,10 @@ private:
     bool is_match_pic_in_rect(const char *image, POINT &point, const RECT &rect);
 
     //从文件匹配
-    double Match_picture(const std::vector<uchar>& img1, const char* img2, cv::Point &maxLoc);
+    double match_picture(const std::vector<uchar>& img1, const char* img2, cv::Point &maxLoc);
 
     //从内存匹配
-    double Match_picture(const std::vector<uchar>& img1, const std::vector<uchar>& img2, cv::Point &maxLoc);
+    double match_picture(const std::vector<uchar>& img1, const std::vector<uchar>& img2, cv::Point &maxLoc);
 
 
     POINT get_cur_mouse();

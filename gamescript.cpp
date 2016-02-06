@@ -88,7 +88,7 @@ tryagain:
     }
     else
     {
-        Sleep(150);
+        Sleep(50);
         goto tryagain;
     }
 }
@@ -301,7 +301,7 @@ void GameScriper::entry_game()
             mhprintf("未知场景..");
         }
 
-        Sleep(200);
+        Sleep(100);
     }
 
 }
@@ -340,6 +340,51 @@ PLAYER_STATUS GameScriper::get_player_status()
 void GameScriper::regist_lua_fun()
 {
 
+    REGLUAFUN(lua_status, "玩家宠物", [](lua_State* L)->int{
+        std::string imgname = lua_tostring(L, 1);
+        imgname += ".png";
+        imgname.insert(0, "pic\\");
+
+        GameScriper::get_instance(L)->click(point_pet.x, point_pet.y);
+        GameScriper::get_instance(L)->click(imgname.c_str());
+
+        return 0;
+    });
+
+    REGLUAFUN(lua_status, "存在图片", [](lua_State* L)->int{
+        std::string imgname = lua_tostring(L, 1);
+        imgname += ".png";
+        imgname.insert(0, "pic\\");
+        bool bexist = GameScriper::get_instance(L)->is_match_pic_in_screen(imgname.c_str());
+        lua_pushboolean(L, bexist);
+        return 1;
+    });
+
+    REGLUAFUN(lua_status, "使用辅助技能", [](lua_State* L)->int{
+        const std::string name = lua_tostring(L, 1);
+        if(name == "烹饪"){
+            GameScriper::get_instance(L)->click(point_player.x, point_player.y);
+            GameScriper::get_instance(L)->click("pic\\辅助技能.png");
+            GameScriper::get_instance(L)->click("pic\\烹饪.png");
+        }
+        else{
+            GameScriper::get_instance(L)->mhprintf("参数错误 找唱哥");
+        }
+
+        return 0;
+    });
+
+
+    REGLUAFUN(lua_status, "加血", [](lua_State* L)->int{
+        GameScriper::get_instance(L)->rclick(point_player_healher.x, point_player_healher.y);
+        return 0;
+    });
+
+    REGLUAFUN(lua_status, "右击", [](lua_State* L)->int{
+        const char *name = lua_tostring(L, 1);
+        GameScriper::get_instance(L)->rclick(name);
+    });
+
     REGLUAFUN(lua_status, "点击座标", [](lua_State* L)->int{
         int x = lua_tointeger(L, 1);
         int y = lua_tointeger(L, 2);
@@ -368,7 +413,7 @@ void GameScriper::regist_lua_fun()
         std::string imgname = lua_tostring(L, 1);
         imgname += ".png";
         imgname.insert(0, "pic\\");
-        GameScriper::get_instance(L)->Dialog_click(imgname.c_str());
+        GameScriper::get_instance(L)->dialog_click(imgname.c_str());
         return 0;
     });
 
@@ -403,21 +448,16 @@ void GameScriper::regist_lua_fun()
        return 0;
     });
 
-    REGLUAFUN(lua_status, "走向小地图", [](lua_State* L)->int{
-        const char* name = lua_tostring(L, 1);
+    REGLUAFUN(lua_status, "点击小地图", [](lua_State* L)->int{
+        std::string name = lua_tostring(L, 1);
+        name += ".png";
+        name.insert(0, "pic\\");
         GameScriper::get_instance(L)->click(point_map.x, point_map.y);
-        GameScriper::get_instance(L)->click(name);
+        GameScriper::get_instance(L)->click(name.c_str());
+        GameScriper::get_instance(L)->close_game_wnd_stuff();
+        GameScriper::get_instance(L)->until_stop_run();
         return 0;
     });
-
-    REGLUAFUN(lua_status, "点击对话框中的", [](lua_State* L)->int{
-        const char* img = lua_tostring(L, 1);
-        //前置窗口
-        ::BringWindowToTop(GameScriper::get_instance(L)->get_game_wnd());
-        GameScriper::get_instance(L)->click(img);
-        return 0;
-    });
-
 }
 
 void GameScriper::run()
@@ -536,7 +576,7 @@ bool GameScriper::is_match_pic_in_screen(const char *image)
     return is_match_pic_in_screen(image, pt);
 }
 
-double GameScriper::Match_picture(const std::vector<uchar> &img1, const char* img2, cv::Point &maxLoc)
+double GameScriper::match_picture(const std::vector<uchar> &img1, const char* img2, cv::Point &maxLoc)
 {
 
     std::string img2_str(img2);
@@ -587,7 +627,7 @@ double GameScriper::Match_picture(const std::vector<uchar> &img1, const char* im
     return maxVal;
 }
 
-double GameScriper::Match_picture(const std::vector<uchar>& img1, const std::vector<uchar>& img2, cv::Point &maxLoc)
+double GameScriper::match_picture(const std::vector<uchar>& img1, const std::vector<uchar>& img2, cv::Point &maxLoc)
 {
 
     if(wnd == nullptr)
@@ -633,9 +673,9 @@ bool GameScriper::is_match_pic_in_rect(const char *image, POINT &point, const RE
 
 
     cv::Point maxLoc;
-    double maxVal = Match_picture(screen_buf, image, maxLoc);
+    double maxVal = match_picture(screen_buf, image, maxLoc);
 
-    if(maxVal > 0.65)
+    if(maxVal > 0.70)
     {
         cv::Mat img_in = cv::imread(image);
         point.x = maxLoc.x + img_in.cols/2 + rect.left;
@@ -655,9 +695,9 @@ bool GameScriper::is_match_pic_in_screen(const char *image, POINT &point)
     std::vector<uchar>&& screen_buf = get_screen_data();
 
     cv::Point maxLoc;
-    double maxVal = Match_picture(screen_buf, image, maxLoc);
+    double maxVal = match_picture(screen_buf, image, maxLoc);
     //mhprintf("匹配: %s %f", image, maxVal);
-    if(maxVal > 0.65)
+    if(maxVal > 0.70)
     {
         cv::Mat img_in = cv::imread(image);
         point.x = maxLoc.x + img_in.cols/2;
@@ -673,7 +713,7 @@ bool GameScriper::is_match_pic_in_screen(const char *image, POINT &point)
 }
 
 //对话框点击
-void GameScriper::Dialog_click(const char* img)
+void GameScriper::dialog_click(const char* img)
 {
     ::SetForegroundWindow(wnd);
     click(img);
@@ -689,7 +729,7 @@ void GameScriper::rand_move_mouse()
     ::PostMessage(wnd, WM_MOUSEMOVE, 0, v);
 
     //需要延迟一下, 这个延迟是等待界面做出响应
-    Sleep(1000);
+    Sleep(200);
 }
 
 
@@ -701,11 +741,11 @@ void GameScriper::until_stop_run()
         //来一张
         //TODO:
         std::vector<uchar>&& pos1 = get_screen_data(rect_position);
-        Sleep(2000);
+        Sleep(1000);
         std::vector<uchar>&& pos2 = get_screen_data(rect_position);
 
         cv::Point maxLoc;
-        double isMatch = Match_picture(pos1, pos2, maxLoc);
+        double isMatch = match_picture(pos1, pos2, maxLoc);
         if(isMatch > 0.9)
         {
             break;
@@ -772,7 +812,7 @@ void GameScriper::click_nofix(int x, int y)
     ::PostMessage(wnd, WM_MOUSEMOVE, 0, v);
     ::PostMessage(wnd, WM_LBUTTONDOWN, 1,v);
     ::PostMessage(wnd, WM_LBUTTONUP, 0,v);
-    Sleep(1000);
+    Sleep(100);
     rand_move_mouse();
 }
 
@@ -787,23 +827,23 @@ letstart:
     bool third_mouse = false;
     bool second_mouse = false;
 
-    double val = Match_picture(screen_buf, "pic\\chk\\mouse1.png", maxLoc);
+    double val = match_picture(screen_buf, "pic\\chk\\mouse1.png", maxLoc);
     if(val < 0.9)
     {
         first_mouse = false;
-        val = Match_picture(screen_buf, "pic\\chk\\mouse2.png", maxLoc);
+        val = match_picture(screen_buf, "pic\\chk\\mouse2.png", maxLoc);
     }
 
     if(val < 0.9)
     {
         second_mouse = true;
-        val = Match_picture(screen_buf, "pic\\chk\\mouse3.png", maxLoc);
+        val = match_picture(screen_buf, "pic\\chk\\mouse3.png", maxLoc);
     }
 
     if(val < 0.9)
     {
         third_mouse = true;
-        val = Match_picture(screen_buf, "pic\\chk\\mouse4.png", maxLoc);
+        val = match_picture(screen_buf, "pic\\chk\\mouse4.png", maxLoc);
     }
 
 
@@ -859,7 +899,7 @@ void GameScriper::click_move(int x, int y, bool lbutton)
     for(size_t i = 0; i < mouse.size(); i++)
     {
         ::PostMessage(wnd, WM_MOUSEMOVE, 0, mouse[i]);
-        Sleep(rand()%7 + 1);
+        Sleep(rand()%3 + 3);
 
         if(i == mouse.size() - 1)
         {
@@ -879,7 +919,7 @@ void GameScriper::click_move(int x, int y, bool lbutton)
 
 
     //需要延迟一下, 这个延迟是等待界面做出响应
-    Sleep(1000);
+    Sleep(200);
 }
 
 
@@ -905,7 +945,7 @@ void GameScriper::click(int x, int y, bool lbutton)
         now_game.y = HIWORD(r[i]);
     }
 
-    Sleep(rand()%1000+500);
+    Sleep(rand()%100+100);
 
     //就一下
     now = get_cur_mouse();
@@ -922,6 +962,7 @@ void GameScriper::click(int x, int y, bool lbutton)
     cur_game_y = now_game.y;
 
     click_move(x, y, lbutton);
+    Sleep(rand()%500+500);
 }
 
 void GameScriper::input(const std::string & msg)
