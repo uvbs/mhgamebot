@@ -383,12 +383,14 @@ void GameScriper::regist_lua_fun()
     REGLUAFUN(lua_status, "右击", [](lua_State* L)->int{
         const char *name = lua_tostring(L, 1);
         GameScriper::get_instance(L)->rclick(name);
+        return 0;
     });
 
     REGLUAFUN(lua_status, "点击座标", [](lua_State* L)->int{
         int x = lua_tointeger(L, 1);
         int y = lua_tointeger(L, 2);
         GameScriper::get_instance(L)->click(x, y);
+        return 0;
     });
 
     REGLUAFUN(lua_status, "获取玩家状态", [](lua_State *L)->int{
@@ -407,6 +409,7 @@ void GameScriper::regist_lua_fun()
 
     REGLUAFUN(lua_status, "对话", [](lua_State* L)->int{
         GameScriper::get_instance(L)->click(SCREEN_WIDTH/2, SCREEN_HEIGHT/2);
+        return 0;
     })
 
     REGLUAFUN(lua_status, "点击对话框内图片", [](lua_State* L)->int{
@@ -716,6 +719,7 @@ bool GameScriper::is_match_pic_in_screen(const char *image, POINT &point)
 void GameScriper::dialog_click(const char* img)
 {
     ::SetForegroundWindow(wnd);
+    Sleep(1000);
     click(img);
 }
 
@@ -899,7 +903,7 @@ void GameScriper::click_move(int x, int y, bool lbutton)
     for(size_t i = 0; i < mouse.size(); i++)
     {
         ::PostMessage(wnd, WM_MOUSEMOVE, 0, mouse[i]);
-        Sleep(rand()%3 + 3);
+        Sleep(rand()%3 + 7);
 
         if(i == mouse.size() - 1)
         {
@@ -962,7 +966,6 @@ void GameScriper::click(int x, int y, bool lbutton)
     cur_game_y = now_game.y;
 
     click_move(x, y, lbutton);
-    Sleep(rand()%500+500);
 }
 
 void GameScriper::input(const std::string & msg)
@@ -1115,8 +1118,7 @@ std::vector<uchar> GameScriper::get_screen_data(const RECT &rcDC)
         GlobalFree(hDIB);
 
         //Clean up
-    }catch(...)
-    {
+    }catch(...){
 
     }
 
