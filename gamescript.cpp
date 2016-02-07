@@ -8,6 +8,7 @@
 
 #define MHCHATWND "梦幻西游2 聊天窗口"
 
+#define  script_inst  GameScriper::get_instance(L)
 
 #define FIRSTTASK(x)\
     if(mouse.is_match_pic_in_screen("pic\\"#x, pt))
@@ -17,7 +18,6 @@
 
 #define ENDTASK \
     else { mhprintf("什么任务.."); mouse.Rand_move_mouse(); }
-
 
 
 //静态初始化
@@ -43,7 +43,7 @@ GameScriper::GameScriper(HWND game_wnd, int id):
 
     lua_atpanic(lua_status, [](lua_State* L)->int{
         const char* err_str = lua_tostring(L, 1);
-        GameScriper::get_instance(L)->mhprintf(err_str);
+        script_inst->mhprintf(err_str);
         lua_pop(L, 1);
 
         throw std::runtime_error("lua脚本异常");
@@ -200,11 +200,12 @@ void GameScriper::close_game_wnd_stuff()
 
 void GameScriper::do_task()
 {
-
+    can_task = true;
+    
     load_lua_file("任务.lua");
     load_lua_file("战斗.lua");
 
-    while(true)
+    while(can_task)
     {
 
         try
@@ -239,6 +240,8 @@ void GameScriper::do_task()
             mhprintf("%s, 重新尝试一次", e.what());
         }
     }
+    
+    can_task = true;
 }
 
 
@@ -337,16 +340,46 @@ PLAYER_STATUS GameScriper::get_player_status()
 
 }
 
+
+//结束任务
+void GameScriper::end_task()
+{
+    can_task = false;
+}
+
 void GameScriper::regist_lua_fun()
 {
 
+    REGLUAFUN(lua_status, "结束脚本", [](lua_State* L)->int{
+        std::string reason = lua_tostring(L, 1);
+        script_inst->mhprintf(reason.c_str());
+        script_inst->end_task();
+        return 0;
+    })
+    
+    REGLUAFUN(lua_status, "释放法术", [](lua_State* L)->int{
+        
+        //前置检测
+        if(script_inst->get_player_status() != COMBAT)
+            throw std::runtime_error("非战斗状态使用了释放法术, 检查脚本逻辑");
+        
+        std::string imgname = lua_tostring(L, 1);
+        imgname += ".png";
+        imgname.insert(0, "pic\\");
+        
+        script_inst->click("战斗-法术");
+        script_inst->click("战斗-法术1");
+        script_inst->click(imgname.c_str());
+        return 0;
+    });
+    
     REGLUAFUN(lua_status, "玩家宠物", [](lua_State* L)->int{
         std::string imgname = lua_tostring(L, 1);
         imgname += ".png";
         imgname.insert(0, "pic\\");
 
-        GameScriper::get_instance(L)->click(point_pet.x, point_pet.y);
-        GameScriper::get_instance(L)->click(imgname.c_str());
+        script_inst->click(point_pet.x, point_pet.y);
+        script_inst->click(imgname.c_str());
 
         return 0;
     });
@@ -355,7 +388,7 @@ void GameScriper::regist_lua_fun()
         std::string imgname = lua_tostring(L, 1);
         imgname += ".png";
         imgname.insert(0, "pic\\");
-        bool bexist = GameScriper::get_instance(L)->is_match_pic_in_screen(imgname.c_str());
+        bool bexist = script_inst->is_match_pic_in_screen(imgname.c_str());
         lua_pushboolean(L, bexist);
         return 1;
     });
@@ -363,12 +396,12 @@ void GameScriper::regist_lua_fun()
     REGLUAFUN(lua_status, "使用辅助技能", [](lua_State* L)->int{
         const std::string name = lua_tostring(L, 1);
         if(name == "烹饪"){
-            GameScriper::get_instance(L)->click(point_player.x, point_player.y);
-            GameScriper::get_instance(L)->click("pic\\辅助技能.png");
-            GameScriper::get_instance(L)->click("pic\\烹饪.png");
+            script_inst->click(point_player.x, point_player.y);
+            script_inst->click("pic\\辅助技能.png");
+            script_inst->click("pic\\烹饪.png");
         }
         else{
-            GameScriper::get_instance(L)->mhprintf("参数错误 找唱哥");
+            script_inst->mhprintf("参数错误 找唱哥");
         }
 
         return 0;
@@ -376,25 +409,25 @@ void GameScriper::regist_lua_fun()
 
 
     REGLUAFUN(lua_status, "加血", [](lua_State* L)->int{
-        GameScriper::get_instance(L)->rclick(point_player_healher.x, point_player_healher.y);
+        script_inst->rclick(point_player_healher.x, point_player_healher.y);
         return 0;
     });
 
     REGLUAFUN(lua_status, "右击", [](lua_State* L)->int{
         const char *name = lua_tostring(L, 1);
-        GameScriper::get_instance(L)->rclick(name);
+        script_inst->rclick(name);
         return 0;
     });
 
     REGLUAFUN(lua_status, "点击座标", [](lua_State* L)->int{
         int x = lua_tointeger(L, 1);
         int y = lua_tointeger(L, 2);
-        GameScriper::get_instance(L)->click(x, y);
+        script_inst->click(x, y);
         return 0;
     });
 
     REGLUAFUN(lua_status, "获取玩家状态", [](lua_State *L)->int{
-        GameScriper::get_instance(L)->do_money();
+        script_inst->do_money();
         return 0;
     });
 
@@ -402,13 +435,13 @@ void GameScriper::regist_lua_fun()
         std::string imgname = lua_tostring(L, 1);
         imgname += ".png";
         imgname.insert(0, "pic\\map\\");
-        bool isin = GameScriper::get_instance(L)->is_in_city(imgname.c_str());
+        bool isin = script_inst->is_in_city(imgname.c_str());
         lua_pushboolean(L, isin);
         return 1;
     });
 
     REGLUAFUN(lua_status, "对话", [](lua_State* L)->int{
-        GameScriper::get_instance(L)->click(SCREEN_WIDTH/2, SCREEN_HEIGHT/2);
+        script_inst->click(SCREEN_WIDTH/2, SCREEN_HEIGHT/2);
         return 0;
     })
 
@@ -416,7 +449,7 @@ void GameScriper::regist_lua_fun()
         std::string imgname = lua_tostring(L, 1);
         imgname += ".png";
         imgname.insert(0, "pic\\");
-        GameScriper::get_instance(L)->dialog_click(imgname.c_str());
+        script_inst->dialog_click(imgname.c_str());
         return 0;
     });
 
@@ -424,13 +457,13 @@ void GameScriper::regist_lua_fun()
         std::string imgname = lua_tostring(L, 1);
         imgname += ".png";
         imgname.insert(0, "pic\\");
-        GameScriper::get_instance(L)->click(imgname.c_str());
-        GameScriper::get_instance(L)->until_stop_run();
+        script_inst->click(imgname.c_str());
+        script_inst->until_stop_run();
         return 0;
     });
 
     REGLUAFUN(lua_status, "等待停止奔跑", [](lua_State* L)->int{
-        GameScriper::get_instance(L)->until_stop_run();
+        script_inst->until_stop_run();
         return 0;
     });
 
@@ -440,12 +473,12 @@ void GameScriper::regist_lua_fun()
             imgname += ".png";
             imgname.insert(0, "pic\\");
 
-            if(!GameScriper::get_instance(L)->is_match_pic_in_screen("pic\\道具行囊.png"))
-                GameScriper::get_instance(L)->click(rect_tools.x, rect_tools.y);
+            if(!script_inst->is_match_pic_in_screen("pic\\道具行囊.png"))
+                script_inst->click(rect_tools.x, rect_tools.y);
 
-            GameScriper::get_instance(L)->rclick(imgname.c_str());
+            script_inst->rclick(imgname.c_str());
         }catch(std::runtime_error &e){
-            GameScriper::get_instance(L)->mhprintf(e.what());
+            script_inst->mhprintf(e.what());
         }
 
        return 0;
@@ -455,10 +488,10 @@ void GameScriper::regist_lua_fun()
         std::string name = lua_tostring(L, 1);
         name += ".png";
         name.insert(0, "pic\\");
-        GameScriper::get_instance(L)->click(point_map.x, point_map.y);
-        GameScriper::get_instance(L)->click(name.c_str());
-        GameScriper::get_instance(L)->close_game_wnd_stuff();
-        GameScriper::get_instance(L)->until_stop_run();
+        script_inst->click(point_map.x, point_map.y);
+        script_inst->click(name.c_str());
+        script_inst->close_game_wnd_stuff();
+        script_inst->until_stop_run();
         return 0;
     });
 }
@@ -540,24 +573,22 @@ void GameScriper::rclick(int x, int y)
 void GameScriper::rclick(const char* image)
 {
     POINT point;
-    if(is_match_pic_in_screen(image, point))
-    {
+    if(is_match_pic_in_screen(image, point)){
         rclick(point.x, point.y);
     }
-    else
-    {
-        char buf[50];
-        sprintf(buf, "rclick error! %s!", image);
-        //mhprintf(buf);
+    else{
+        mhprintf("点击一个不存在的图片 %s, 这不是一个严重错误, 但能表示脚本编写有误");       
     }
 }
 
 void GameScriper::click(const char* image)
 {
     POINT point;
-    if(is_match_pic_in_screen(image, point))
-    {
+    if(is_match_pic_in_screen(image, point)){
         click(point.x, point.y);
+    }
+    else{
+        mhprintf("点击一个不存在的图片 %s, 这不是一个严重错误, 但能表示脚本编写有误");
     }
 }
 
@@ -565,8 +596,7 @@ void GameScriper::click_nofix(const char* image)
 {
 
     POINT point;
-    if(is_match_pic_in_screen(image, point))
-    {
+    if(is_match_pic_in_screen(image, point)){
         click_nofix(point.x, point.y);
     }
 

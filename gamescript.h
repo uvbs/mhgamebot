@@ -57,7 +57,8 @@ private:
     std::string player_level;
     std::list<std::string> lua_func_list;
 
-
+    bool can_task = true;
+    
 public:
     static GameScriper* get_instance(lua_State* L){
         return inst_map[L];
@@ -143,6 +144,7 @@ public:
     void set_player_name(std::string name);
     void call_lua_func(const char *name);
     void load_lua_file(const char *name);
+    void end_task();
 };
 
 
