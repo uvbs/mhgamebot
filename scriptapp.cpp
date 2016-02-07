@@ -130,7 +130,7 @@ void ScriptApp::run()
         {
             try
             {
-                GameScriper script(Game_wnd_vec[i], i);
+                GameScript script(Game_wnd_vec[i], i);
                 script.run();
             }
             catch(const std::runtime_error &e)

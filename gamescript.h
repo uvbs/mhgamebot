@@ -16,12 +16,12 @@
 
 
 //表示一个控制窗口的脚本
-class GameScriper
+class GameScript
 {
 
 public:
-    GameScriper(HWND game_wnd, int id);
-    ~GameScriper(){
+    GameScript(HWND game_wnd, int id);
+    ~GameScript(){
         lua_close(lua_status);
     }
 
@@ -60,14 +60,14 @@ private:
     bool can_task = true;
     
 public:
-    static GameScriper* get_instance(lua_State* L){
+    static GameScript* get_instance(lua_State* L){
         return inst_map[L];
     }
 
 
     void readLuaArray(lua_State *L);
 private:
-    static std::map<lua_State*, GameScriper*> inst_map;
+    static std::map<lua_State*, GameScript*> inst_map;
     HWND wnd;
 //    HDC hdc;
     int script_id;

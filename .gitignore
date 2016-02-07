@@ -4,3 +4,5 @@
 *.pro.user
 /build-mh-Release/
 /build-mhbot-Debug/
+/build-control-Desktop-Debug/
+/build-control-Desktop-Release/

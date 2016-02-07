@@ -8,7 +8,7 @@
 
 #define MHCHATWND "梦幻西游2 聊天窗口"
 
-#define  script_inst  GameScriper::get_instance(L)
+#define  script_inst  GameScript::get_instance(L)
 
 #define FIRSTTASK(x)\
     if(mouse.is_match_pic_in_screen("pic\\"#x, pt))
@@ -21,10 +21,10 @@
 
 
 //静态初始化
-std::map<lua_State*, GameScriper*> GameScriper::inst_map;
+std::map<lua_State*, GameScript*> GameScript::inst_map;
 
 //构造函数
-GameScriper::GameScriper(HWND game_wnd, int id):
+GameScript::GameScript(HWND game_wnd, int id):
     player_name(std::string("窗口")+boost::lexical_cast<std::string>(id)),
     player_level("0")
 {
@@ -63,7 +63,7 @@ GameScriper::GameScriper(HWND game_wnd, int id):
     cur_game_y = 0;
 }
 
-void GameScriper::mhprintf(const char* msg, ...)
+void GameScript::mhprintf(const char* msg, ...)
 {
     static bool can_printf = true;
 tryagain:
@@ -94,7 +94,7 @@ tryagain:
 }
 
 
-bool GameScriper::is_in_city(const char* city)
+bool GameScript::is_in_city(const char* city)
 {
 
 
@@ -110,7 +110,7 @@ bool GameScriper::is_in_city(const char* city)
 
 
 //检测离线, 网络断线
-bool GameScriper::check_offline()
+bool GameScript::check_offline()
 {
 
     HWND wnd = FindWindowExA(NULL, NULL, nullptr, "网络错误");
@@ -127,12 +127,12 @@ bool GameScriper::check_offline()
     return false;
 }
 
-void GameScriper::test_lua(const char *err)
+void GameScript::test_lua(const char *err)
 {
     mhprintf(err);
 }
 
-void GameScriper::call_lua_func(const char* name)
+void GameScript::call_lua_func(const char* name)
 {
     //调用这个名字的函数
     std::string str_name(name);
@@ -148,7 +148,7 @@ void GameScriper::call_lua_func(const char* name)
 }
 
 //读取任务数组
-void GameScriper::readLuaArray(lua_State *L)
+void GameScript::readLuaArray(lua_State *L)
 {
     lua_getglobal(L, "任务");
     int n = luaL_len(L, -1);
@@ -175,7 +175,7 @@ void GameScriper::readLuaArray(lua_State *L)
     lua_pop(L, 1);
 }
 
-void GameScriper::load_lua_file(const char* name)
+void GameScript::load_lua_file(const char* name)
 {
     //加载任务脚本
     if(LUA_OK != luaL_dofile(lua_status, name))
@@ -188,7 +188,7 @@ void GameScriper::load_lua_file(const char* name)
 }
 
 //关掉一些东西
-void GameScriper::close_game_wnd_stuff()
+void GameScript::close_game_wnd_stuff()
 {
     //关对话框...
     click("pic\\关闭.png");
@@ -198,7 +198,7 @@ void GameScriper::close_game_wnd_stuff()
 
 }
 
-void GameScriper::do_task()
+void GameScript::do_task()
 {
     can_task = true;
     
@@ -248,7 +248,7 @@ void GameScriper::do_task()
 //当前玩家的状态
 //登录界面
 //载入界面
-void GameScriper::entry_game()
+void GameScript::entry_game()
 {
     //找图检测吧
 
@@ -311,7 +311,7 @@ void GameScriper::entry_game()
 
 
 //获取玩家状态
-PLAYER_STATUS GameScriper::get_player_status()
+PLAYER_STATUS GameScript::get_player_status()
 {
     if(is_match_pic_in_screen("pic\\战斗中.png"))
     {
@@ -342,12 +342,12 @@ PLAYER_STATUS GameScriper::get_player_status()
 
 
 //结束任务
-void GameScriper::end_task()
+void GameScript::end_task()
 {
     can_task = false;
 }
 
-void GameScriper::regist_lua_fun()
+void GameScript::regist_lua_fun()
 {
 
     REGLUAFUN(lua_status, "结束脚本", [](lua_State* L)->int{
@@ -496,7 +496,7 @@ void GameScriper::regist_lua_fun()
     });
 }
 
-void GameScriper::run()
+void GameScript::run()
 {
     //运行脚本
     mhprintf("%d脚本执行", std::this_thread::get_id());
@@ -528,7 +528,7 @@ void GameScriper::run()
 }
 
 
-int GameScriper::make_mouse_value(int x, int y)
+int GameScript::make_mouse_value(int x, int y)
 {
     int v = 0;
     v = x;
@@ -538,7 +538,7 @@ int GameScriper::make_mouse_value(int x, int y)
     return v;
 }
 
-std::vector<uchar> GameScriper::get_screen_data()
+std::vector<uchar> GameScript::get_screen_data()
 {
     RECT rect = {};
     ::GetClientRect(wnd, &rect);
@@ -548,7 +548,7 @@ std::vector<uchar> GameScriper::get_screen_data()
     return get_screen_data(rect);
 }
 
-void GameScriper::input_event(const char* input)
+void GameScript::input_event(const char* input)
 {
     for(size_t i = 0; i < strlen(input); i++)
     {
@@ -562,7 +562,7 @@ void GameScriper::input_event(const char* input)
 
 
 //也用来取消攻击状态
-void GameScriper::rclick(int x, int y)
+void GameScript::rclick(int x, int y)
 {
     //TODO:
     click(x, y, false);
@@ -570,7 +570,7 @@ void GameScriper::rclick(int x, int y)
 
 
 
-void GameScriper::rclick(const char* image)
+void GameScript::rclick(const char* image)
 {
     POINT point;
     if(is_match_pic_in_screen(image, point)){
@@ -581,7 +581,7 @@ void GameScriper::rclick(const char* image)
     }
 }
 
-void GameScriper::click(const char* image)
+void GameScript::click(const char* image)
 {
     POINT point;
     if(is_match_pic_in_screen(image, point)){
@@ -592,7 +592,7 @@ void GameScriper::click(const char* image)
     }
 }
 
-void GameScriper::click_nofix(const char* image)
+void GameScript::click_nofix(const char* image)
 {
 
     POINT point;
@@ -603,13 +603,13 @@ void GameScriper::click_nofix(const char* image)
 }
 
 
-bool GameScriper::is_match_pic_in_screen(const char *image)
+bool GameScript::is_match_pic_in_screen(const char *image)
 {
     POINT pt;
     return is_match_pic_in_screen(image, pt);
 }
 
-double GameScriper::match_picture(const std::vector<uchar> &img1, const char* img2, cv::Point &maxLoc)
+double GameScript::match_picture(const std::vector<uchar> &img1, const char* img2, cv::Point &maxLoc)
 {
 
     std::string img2_str(img2);
@@ -660,7 +660,7 @@ double GameScriper::match_picture(const std::vector<uchar> &img1, const char* im
     return maxVal;
 }
 
-double GameScriper::match_picture(const std::vector<uchar>& img1, const std::vector<uchar>& img2, cv::Point &maxLoc)
+double GameScript::match_picture(const std::vector<uchar>& img1, const std::vector<uchar>& img2, cv::Point &maxLoc)
 {
 
     if(wnd == nullptr)
@@ -699,7 +699,7 @@ double GameScriper::match_picture(const std::vector<uchar>& img1, const std::vec
 
 //这种匹配部分主要用来避免一些误差
 //
-bool GameScriper::is_match_pic_in_rect(const char *image, POINT &point, const RECT &rect)
+bool GameScript::is_match_pic_in_rect(const char *image, POINT &point, const RECT &rect)
 {
     //取得屏幕图片
     std::vector<uchar>&& screen_buf = get_screen_data(rect);
@@ -722,7 +722,7 @@ bool GameScriper::is_match_pic_in_rect(const char *image, POINT &point, const RE
 }
 
 //POINT 返回匹配到的图片位置
-bool GameScriper::is_match_pic_in_screen(const char *image, POINT &point)
+bool GameScript::is_match_pic_in_screen(const char *image, POINT &point)
 {
     //两个对比的图
     std::vector<uchar>&& screen_buf = get_screen_data();
@@ -746,14 +746,14 @@ bool GameScriper::is_match_pic_in_screen(const char *image, POINT &point)
 }
 
 //对话框点击
-void GameScriper::dialog_click(const char* img)
+void GameScript::dialog_click(const char* img)
 {
     ::SetForegroundWindow(wnd);
     Sleep(1000);
     click(img);
 }
 
-void GameScriper::rand_move_mouse()
+void GameScript::rand_move_mouse()
 {
     //取得当前坐标到目的的差值
     int x = rand()%200+100;
@@ -768,7 +768,7 @@ void GameScriper::rand_move_mouse()
 
 
 //TODO: 需要一个超时
-void GameScriper::until_stop_run()
+void GameScript::until_stop_run()
 {
     while(1)
     {
@@ -789,7 +789,7 @@ void GameScriper::until_stop_run()
 }
 
 //x -> x2
-std::vector<int> GameScriper::get_mouse_vec(int x, int y, int x2, int y2)
+std::vector<int> GameScript::get_mouse_vec(int x, int y, int x2, int y2)
 {
     std::vector<int> mouse_vec;
 
@@ -840,7 +840,7 @@ std::vector<int> GameScriper::get_mouse_vec(int x, int y, int x2, int y2)
     return mouse_vec;
 }
 
-void GameScriper::click_nofix(int x, int y)
+void GameScript::click_nofix(int x, int y)
 {
     int v = make_mouse_value(x, y);
     ::PostMessage(wnd, WM_MOUSEMOVE, 0, v);
@@ -851,7 +851,7 @@ void GameScriper::click_nofix(int x, int y)
 }
 
 //匹配屏幕获取当前鼠标位置
-POINT GameScriper::get_cur_mouse()
+POINT GameScript::get_cur_mouse()
 {
 
 letstart:
@@ -915,7 +915,7 @@ letstart:
 }
 
 
-void GameScriper::click_move(int x, int y, bool lbutton)
+void GameScript::click_move(int x, int y, bool lbutton)
 {
 
     if(x > SCREEN_WIDTH || y > SCREEN_HEIGHT)
@@ -959,7 +959,7 @@ void GameScriper::click_move(int x, int y, bool lbutton)
 
 //传进来的是窗口坐标
 //转化成游戏内坐标, 之后用WM_MOUSEMOVE移动
-void GameScriper::click(int x, int y, bool lbutton)
+void GameScript::click(int x, int y, bool lbutton)
 {
 
 
@@ -998,7 +998,7 @@ void GameScriper::click(int x, int y, bool lbutton)
     click_move(x, y, lbutton);
 }
 
-void GameScriper::input(const std::string & msg)
+void GameScript::input(const std::string & msg)
 {
 
     for(size_t j = 0; j < msg.size(); j++){
@@ -1009,7 +1009,7 @@ void GameScriper::input(const std::string & msg)
 }
 
 
-void GameScriper::set_player_name(std::string name)
+void GameScript::set_player_name(std::string name)
 {
     player_name = name;
 }
@@ -1017,7 +1017,7 @@ void GameScriper::set_player_name(std::string name)
 
 
 //返回屏幕内存数据
-std::vector<uchar> GameScriper::get_screen_data(const RECT &rcDC)
+std::vector<uchar> GameScript::get_screen_data(const RECT &rcDC)
 {
 
     HDC hdcWindow = nullptr;
