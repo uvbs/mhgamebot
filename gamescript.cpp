@@ -218,7 +218,7 @@ void GameScript::do_task()
             if(status == PLAYER_STATUS::COMBAT)
             {
                 //有菜单出现再进行操作
-                if(is_match_pic_in_screen("pic\\战斗-菜单.png"))
+                if(is_match_pic_in_screen("pic\\战斗-菜单2.png"))
                 {
                     call_lua_func("战斗回调");
                     bool processed = lua_toboolean(lua_status, -1);
@@ -453,6 +453,22 @@ void GameScript::regist_lua_fun()
         return 0;
     });
 
+    REGLUAFUN(lua_status, "点击任务", [](lua_State* L)->int{
+        std::string imgname = lua_tostring(L, 1);
+        imgname += ".png";
+        imgname.insert(0, "pic\\");
+        POINT pt;
+        if(script_inst->is_match_pic_in_rect(imgname.c_str(), pt, rect_task)){
+            script_inst->click(pt.x, pt.y);
+        }
+        else{
+            char buf[100];
+            sprintf(buf, "图片 %s 没有匹配到", imgname.c_str());    
+            throw std::runtime_error(buf);
+        }
+            
+        return 0;
+    })
     REGLUAFUN(lua_status, "点击图片", [](lua_State* L)->int{
         std::string imgname = lua_tostring(L, 1);
         imgname += ".png";
@@ -468,20 +484,16 @@ void GameScript::regist_lua_fun()
     });
 
     REGLUAFUN(lua_status, "装备物品", [](lua_State* L)->int{
-        try{
-            std::string imgname = lua_tostring(L, 1);
-            imgname += ".png";
-            imgname.insert(0, "pic\\");
-
-            if(!script_inst->is_match_pic_in_screen("pic\\道具行囊.png"))
-                script_inst->click(rect_tools.x, rect_tools.y);
-
-            script_inst->rclick(imgname.c_str());
-        }catch(std::runtime_error &e){
-            script_inst->mhprintf(e.what());
-        }
-
-       return 0;
+        
+        std::string imgname = lua_tostring(L, 1);
+        imgname += ".png";
+        imgname.insert(0, "pic\\");
+        
+        if(!script_inst->is_match_pic_in_screen("pic\\道具行囊.png"))
+            script_inst->click(rect_tools.x, rect_tools.y);
+        
+        script_inst->rclick(imgname.c_str());
+        return 0;
     });
 
     REGLUAFUN(lua_status, "点击小地图", [](lua_State* L)->int{
@@ -577,7 +589,7 @@ void GameScript::rclick(const char* image)
         rclick(point.x, point.y);
     }
     else{
-        mhprintf("点击一个不存在的图片 %s, 这不是一个严重错误, 但能表示脚本编写有误");       
+        mhprintf("点击一个不存在的图片 %s, 这不是一个严重错误, 但能表示脚本编写有误", image);       
     }
 }
 
@@ -588,7 +600,7 @@ void GameScript::click(const char* image)
         click(point.x, point.y);
     }
     else{
-        mhprintf("点击一个不存在的图片 %s, 这不是一个严重错误, 但能表示脚本编写有误");
+        mhprintf("点击一个不存在的图片 %s, 这不是一个严重错误, 但能表示脚本编写有误", image);
     }
 }
 
@@ -696,6 +708,12 @@ double GameScript::match_picture(const std::vector<uchar>& img1, const std::vect
     return maxVal;
 }
 
+
+bool GameScript::is_match_pic_in_rect(const char *image, const RECT &rect)
+{
+    POINT pt;
+    return is_match_pic_in_rect(image, pt, rect);
+}
 
 //这种匹配部分主要用来避免一些误差
 //
@@ -1017,7 +1035,7 @@ void GameScript::set_player_name(std::string name)
 
 
 //返回屏幕内存数据
-std::vector<uchar> GameScript::get_screen_data(const RECT &rcDC)
+std::vector<uchar> GameScript::get_screen_data(const RECT &rcClient)
 {
 
     HDC hdcWindow = nullptr;
@@ -1035,36 +1053,14 @@ std::vector<uchar> GameScript::get_screen_data(const RECT &rcDC)
         // Create a compatible DC which is used in a BitBlt from the window DC
         hdcMemDC = CreateCompatibleDC(hdcWindow);
 
-        if(!hdcMemDC)
-        {
+        if(!hdcMemDC){
             throw std::runtime_error("CreateCompatibleDC has failed");
-        }
-
-        // Get the client area for size calculation
-        RECT rcClient;
-        GetClientRect(wnd, &rcClient);
-
-        //This is the best stretch mode
-        SetStretchBltMode(hdcWindow,HALFTONE);
-
-        //The source DC is the entire screen and the destination DC is the current window (HWND)
-        if(!StretchBlt(hdcMemDC,
-                       0,0,
-                       rcClient.right, rcClient.bottom,
-                       hdcWindow,
-                       0,0,
-                       GetSystemMetrics (SM_CXSCREEN),
-                       GetSystemMetrics (SM_CYSCREEN),
-                       SRCCOPY))
-        {
-            throw std::runtime_error("StretchBlt has failed");
         }
 
         // Create a compatible bitmap from the Window DC
         hbmScreen = CreateCompatibleBitmap(hdcWindow, rcClient.right-rcClient.left, rcClient.bottom-rcClient.top);
 
-        if(!hbmScreen)
-        {
+        if(!hbmScreen){
             throw std::runtime_error("CreateCompatibleBitmap Failed");
         }
 
@@ -1073,10 +1069,10 @@ std::vector<uchar> GameScript::get_screen_data(const RECT &rcDC)
 
         // Bit block transfer into our compatible memory DC.
         if(!BitBlt(hdcMemDC,
-                   0,0,
+                   0, 0,
                    rcClient.right-rcClient.left, rcClient.bottom-rcClient.top,
                    hdcWindow,
-                   0,0,
+                   rcClient.left, rcClient.top,
                    SRCCOPY))
         {
             throw std::runtime_error("BitBlt has failed");

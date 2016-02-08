@@ -92,9 +92,11 @@ private:
 
     //从屏幕匹配
     bool is_match_pic_in_screen(const char *image);
-    bool is_match_pic_in_screen(const char *image, POINT &point);
+    bool is_match_pic_in_screen(const char *image, POINT &point);   //参数2: 返回匹配到的POINT结构
+    
+    bool is_match_pic_in_rect(const char *image, const RECT &rect);
     bool is_match_pic_in_rect(const char *image, POINT &point, const RECT &rect);
-
+    
     //从文件匹配
     double match_picture(const std::vector<uchar>& img1, const char* img2, cv::Point &maxLoc);
 
@@ -123,7 +125,7 @@ private:
 
 public:
     std::vector<uchar> get_screen_data();
-    std::vector<uchar> get_screen_data(const RECT &rcDC);
+    std::vector<uchar> get_screen_data(const RECT &rcClient);
 
 
 private:
