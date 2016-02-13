@@ -12,7 +12,7 @@
 #include <opencv2/opencv.hpp>
 
 #include "define.h"
-#include "mh_config.h"
+#include "config.h"
 
 
 //表示一个控制窗口的脚本
@@ -91,11 +91,11 @@ private:
     void input(const std::string & msg);
 
     //从屏幕匹配
-    bool is_match_pic_in_screen(const char *image);
-    bool is_match_pic_in_screen(const char *image, POINT &point);   //参数2: 返回匹配到的POINT结构
+    bool is_match_pic_in_screen(const char *image, int threshold = 7);
+    bool is_match_pic_in_screen(const char *image, POINT &point, int threshold = 7);   //参数2: 返回匹配到的POINT结构
     
-    bool is_match_pic_in_rect(const char *image, const RECT &rect);
-    bool is_match_pic_in_rect(const char *image, POINT &point, const RECT &rect);
+    bool is_match_pic_in_rect(const char *image, const RECT &rect, int threshold = 7);
+    bool is_match_pic_in_rect(const char *image, POINT &point, const RECT &rect, int threshold = 7);
     
     //从文件匹配
     double match_picture(const std::vector<uchar>& img1, const char* img2, cv::Point &maxLoc);
@@ -142,9 +142,10 @@ private:
     int cur_game_y;
 
     void close_game_wnd_stuff();
+    void match_task();
 public:
     void set_player_name(std::string name);
-    void call_lua_func(const char *name);
+    void call_lua_func(const std::string& name);
     void load_lua_file(const char *name);
     void end_task();
 };

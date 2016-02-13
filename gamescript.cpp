@@ -132,7 +132,7 @@ void GameScript::test_lua(const char *err)
     mhprintf(err);
 }
 
-void GameScript::call_lua_func(const char* name)
+void GameScript::call_lua_func(const std::string& name)
 {
     //调用这个名字的函数
     std::string str_name(name);
@@ -143,6 +143,25 @@ void GameScript::call_lua_func(const char* name)
         mhprintf(err);
         lua_pop(lua_status, 1);
         throw std::runtime_error("lua脚本执行失败");
+    }
+}
+
+void GameScript::match_task()
+{
+    for(auto name :lua_func_list)
+    {
+        //backup
+        std::string taskname(name);
+
+        taskname.insert(0, "pic\\");
+        taskname += ".png";
+    
+        if(is_match_pic_in_screen(taskname.c_str()))
+        {
+            mhprintf("开始任务->%s", taskname.c_str());
+            call_lua_func(name);
+            break;
+        }  
     }
 
 }
@@ -158,19 +177,10 @@ void GameScript::readLuaArray(lua_State *L)
         lua_gettable(L, -2);  //读取table[i]，table位于-2的位置。
         const char* name = lua_tostring(L, -1);
         lua_pop(L, 1);
-        //backup
-        std::string taskname(name);
-        std::string backup_taskname(name);
-
-        taskname.insert(0, "pic\\");
-        taskname += ".png";
-
-        if(is_match_pic_in_screen(taskname.c_str()))
-        {
-            mhprintf("开始任务->%s", taskname.c_str());
-            call_lua_func(backup_taskname.c_str());
-            break;
-        }
+        
+        
+        lua_func_list.push_back(name);
+   
     }
     lua_pop(L, 1);
 }
@@ -185,6 +195,8 @@ void GameScript::load_lua_file(const char* name)
         lua_pop(lua_status, 1);
         throw std::runtime_error("加载lua脚本失败");
     }
+    
+    readLuaArray(lua_status);
 }
 
 //关掉一些东西
@@ -230,7 +242,7 @@ void GameScript::do_task()
 
             }
             else if(status == PLAYER_STATUS::NORMAL){
-                readLuaArray(lua_status);
+                match_task();
             }
         }
         catch(exception_xy &e){
@@ -355,7 +367,7 @@ void GameScript::regist_lua_fun()
         script_inst->mhprintf(reason.c_str());
         script_inst->end_task();
         return 0;
-    })
+    });
     
     REGLUAFUN(lua_status, "释放法术", [](lua_State* L)->int{
         
@@ -388,7 +400,17 @@ void GameScript::regist_lua_fun()
         std::string imgname = lua_tostring(L, 1);
         imgname += ".png";
         imgname.insert(0, "pic\\");
-        bool bexist = script_inst->is_match_pic_in_screen(imgname.c_str());
+        bool bexist;
+        
+        if(lua_gettop(L) == 2){
+            int threshold = lua_tointeger(L, 2);
+            bexist = script_inst->is_match_pic_in_screen(imgname.c_str(), threshold);
+        }
+        else{
+            bexist = script_inst->is_match_pic_in_screen(imgname.c_str());
+        }
+     
+        
         lua_pushboolean(L, bexist);
         return 1;
     });
@@ -489,7 +511,7 @@ void GameScript::regist_lua_fun()
         imgname += ".png";
         imgname.insert(0, "pic\\");
         
-        if(!script_inst->is_match_pic_in_screen("pic\\道具行囊.png"))
+        if(!script_inst->is_match_pic_in_screen("pic\\道具行囊.png", 5))
             script_inst->click(rect_tools.x, rect_tools.y);
         
         script_inst->rclick(imgname.c_str());
@@ -615,10 +637,10 @@ void GameScript::click_nofix(const char* image)
 }
 
 
-bool GameScript::is_match_pic_in_screen(const char *image)
+bool GameScript::is_match_pic_in_screen(const char *image, int threshold)
 {
     POINT pt;
-    return is_match_pic_in_screen(image, pt);
+    return is_match_pic_in_screen(image, pt, threshold);
 }
 
 double GameScript::match_picture(const std::vector<uchar> &img1, const char* img2, cv::Point &maxLoc)
@@ -709,15 +731,15 @@ double GameScript::match_picture(const std::vector<uchar>& img1, const std::vect
 }
 
 
-bool GameScript::is_match_pic_in_rect(const char *image, const RECT &rect)
+bool GameScript::is_match_pic_in_rect(const char *image, const RECT &rect, int threshold)
 {
     POINT pt;
-    return is_match_pic_in_rect(image, pt, rect);
+    return is_match_pic_in_rect(image, pt, rect, threshold);
 }
 
 //这种匹配部分主要用来避免一些误差
 //
-bool GameScript::is_match_pic_in_rect(const char *image, POINT &point, const RECT &rect)
+bool GameScript::is_match_pic_in_rect(const char *image, POINT &point, const RECT &rect, int threshold)
 {
     //取得屏幕图片
     std::vector<uchar>&& screen_buf = get_screen_data(rect);
@@ -726,7 +748,7 @@ bool GameScript::is_match_pic_in_rect(const char *image, POINT &point, const REC
     cv::Point maxLoc;
     double maxVal = match_picture(screen_buf, image, maxLoc);
 
-    if(maxVal > 0.70)
+    if(maxVal > (double)threshold/10)
     {
         cv::Mat img_in = cv::imread(image);
         point.x = maxLoc.x + img_in.cols/2 + rect.left;
@@ -740,7 +762,7 @@ bool GameScript::is_match_pic_in_rect(const char *image, POINT &point, const REC
 }
 
 //POINT 返回匹配到的图片位置
-bool GameScript::is_match_pic_in_screen(const char *image, POINT &point)
+bool GameScript::is_match_pic_in_screen(const char *image, POINT &point, int threshold)
 {
     //两个对比的图
     std::vector<uchar>&& screen_buf = get_screen_data();
@@ -748,7 +770,7 @@ bool GameScript::is_match_pic_in_screen(const char *image, POINT &point)
     cv::Point maxLoc;
     double maxVal = match_picture(screen_buf, image, maxLoc);
     //mhprintf("匹配: %s %f", image, maxVal);
-    if(maxVal > 0.70)
+    if(maxVal > (double)threshold/10)
     {
         cv::Mat img_in = cv::imread(image);
         point.x = maxLoc.x + img_in.cols/2;
@@ -788,20 +810,23 @@ void GameScript::rand_move_mouse()
 //TODO: 需要一个超时
 void GameScript::until_stop_run()
 {
+    //来一张
+    std::vector<uchar>&& pos1 = get_screen_data(rect_position);
+    
     while(1)
     {
-        //来一张
-        //TODO:
-        std::vector<uchar>&& pos1 = get_screen_data(rect_position);
-        Sleep(1000);
+
+        Sleep(2000);
         std::vector<uchar>&& pos2 = get_screen_data(rect_position);
 
         cv::Point maxLoc;
         double isMatch = match_picture(pos1, pos2, maxLoc);
-        if(isMatch > 0.9)
+        if(isMatch > 0.95)
         {
             break;
         }
+        
+        pos1 = pos2;
     }
 
 }
@@ -875,59 +900,24 @@ POINT GameScript::get_cur_mouse()
 letstart:
     std::vector<uchar>&& screen_buf = get_screen_data();
     cv::Point maxLoc;
-    bool first_mouse = true;
-    bool third_mouse = false;
-    bool second_mouse = false;
 
-    double val = match_picture(screen_buf, "pic\\chk\\mouse1.png", maxLoc);
+
+    double val = match_picture(screen_buf, "pic\\chk\\mouse2.png", maxLoc);
+    maxLoc.x -= 17;
+    maxLoc.y -= 17;
+    
     if(val < 0.9)
     {
-        first_mouse = false;
-        val = match_picture(screen_buf, "pic\\chk\\mouse2.png", maxLoc);
-    }
-
-    if(val < 0.9)
-    {
-        second_mouse = true;
-        val = match_picture(screen_buf, "pic\\chk\\mouse3.png", maxLoc);
-    }
-
-    if(val < 0.9)
-    {
-        third_mouse = true;
         val = match_picture(screen_buf, "pic\\chk\\mouse4.png", maxLoc);
+        maxLoc.x -= 30;
     }
-
-
+   
 
     if(val < 0.9)
     {
         rand_move_mouse();
         goto letstart;
     }
-
-    //减去截取的鼠标图本身的偏差
-    if(first_mouse)
-    {
-        maxLoc.x -= 0;
-        maxLoc.y -= 3;
-    }
-    else if(first_mouse == false)
-    {
-        maxLoc.x -= 17;
-        maxLoc.y -= 17;
-    }
-    else if(second_mouse == true)
-    {
-        maxLoc.x -= 2;
-        maxLoc.y -= 3;
-    }
-    else if(third_mouse == true)
-    {
-        maxLoc.x -= 30;
-    }
-
-
 
     return {maxLoc.x, maxLoc.y};
 }
@@ -951,7 +941,7 @@ void GameScript::click_move(int x, int y, bool lbutton)
     for(size_t i = 0; i < mouse.size(); i++)
     {
         ::PostMessage(wnd, WM_MOUSEMOVE, 0, mouse[i]);
-        Sleep(rand()%3 + 7);
+        Sleep(7);
 
         if(i == mouse.size() - 1)
         {

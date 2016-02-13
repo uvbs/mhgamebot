@@ -15,7 +15,9 @@ struct GameConfig
 
     GameConfig():
         lua_txt_name("task.lua"),
-        type(LEVEL){}
+        type(LEVEL),
+        start_counts(5)
+    {}
 
     ~GameConfig(){}
 
@@ -32,6 +34,7 @@ struct GameConfig
     Script_type type;
     std::string srv_name;  //区名称
     std::string lua_txt_name; //脚本名称
+    int start_counts;       //自动开启客户端数量
 };
 
 

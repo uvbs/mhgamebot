@@ -10,9 +10,16 @@ MainWindow::MainWindow(QWidget *parent) :
     
     model = new ScriptTableModel(this);
     ui->tableView->setModel(model);
+    ui->statusBar->showMessage("Ready");
 }
 
 MainWindow::~MainWindow()
 {
     delete ui;
+    delete model;
+}
+
+void MainWindow::on_aboutQtAct_triggered()
+{
+    qApp->aboutQt();
 }

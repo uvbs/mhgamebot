@@ -80,7 +80,7 @@ const SCRIPT_TYPE_DESC Script_type_desc[] =
 #define SCREEN_WIDTH 640
 #define SCREEN_HEIGHT 480
 const RECT rect_task = {470, 140, SCREEN_WIDTH, SCREEN_HEIGHT};
-const RECT rect_position = {45, 27, 106, 40};
+const RECT rect_position = {27, 27, 120, 41};
 
 //游戏按钮
 const POINT point_player = {548, 27};
