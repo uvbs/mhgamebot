@@ -6,8 +6,11 @@
 #include <vector>
 #include <thread>
 #include <string>
+#include <map>
 
 #include "define.h"
+#include "config.h"
+
 
 class ScriptApp
 {
@@ -18,15 +21,17 @@ public:
     bool launcher_game();
 
 private:
-    std::vector<HWND> Game_chat_vec;
-    std::vector<HWND> Game_wnd_vec;
-    std::vector<std::thread> Game_thread;
-
+    std::vector<HWND> game_wnds;
+    std::vector<std::thread> game_threads;
+    std::map<std::string, std::string> game_accounts;
+    GameConfig config;
+    
 public:
     void mhprintf(const char *msg, ...);
 
 public:
     void run();
+    void read_accounts();
     int find_game_window(const std::string& classname);
     std::string find_game_path();
     int hide_chat_window();

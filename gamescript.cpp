@@ -281,7 +281,8 @@ void GameScript::entry_game()
         }
         else if(is_match_pic_in_screen("pic\\inputpw.png"))
         {
-
+            input_password("pengchang@live.cn,123456");
+            click_nofix("pic\\nextstep.png");
         }
         else if(is_match_pic_in_screen("pic\\游戏内.png"))
         {
@@ -582,16 +583,39 @@ std::vector<uchar> GameScript::get_screen_data()
     return get_screen_data(rect);
 }
 
-void GameScript::input_event(const char* input)
+void GameScript::input_password(const char* input)
 {
-    for(size_t i = 0; i < strlen(input); i++)
-    {
-
-        keybd_event(input[i],0,0,0);     //按下a键
-        keybd_event(input[i],0,KEYEVENTF_KEYUP,0);//松开a键
+    
+    for(size_t i = 0; i < strlen(input); i++){
+        
+        if(input[i] == '@')
+        {
+            keybd_event(16, 0, 0 ,0);
+            Sleep(100);
+            keybd_event(0x32,0,0,0);     //按下a键
+            keybd_event(0x32,0,KEYEVENTF_KEYUP,0);//松开a键
+            keybd_event(16,0,KEYEVENTF_KEYUP,0);//松开a键
+        }
+        else if(input[i] == '.')
+        {
+            keybd_event(VK_OEM_PERIOD,0,0,0);     //按下a键
+            keybd_event(VK_OEM_PERIOD,0,KEYEVENTF_KEYUP,0);//松开a键
+        }
+        else if(input[i] == ',')
+        {
+            keybd_event(VK_TAB,0,0,0);     //按下a键
+            keybd_event(VK_TAB,0,KEYEVENTF_KEYUP,0);//松开a键
+            Sleep(100);
+        }
+        else{
+            keybd_event(toupper(input[i]),0,0,0);     //按下a键
+            keybd_event(toupper(input[i]),0,KEYEVENTF_KEYUP,0);//松开a键
+            Sleep(rand()%200+100);  
+        }
+        
 
     }
-
+    
 }
 
 
@@ -659,9 +683,8 @@ double GameScript::match_picture(const std::vector<uchar> &img1, const char* img
     }
 
 
-    if(wnd == nullptr)
+    if(wnd == nullptr || ::IsWindow(wnd) == FALSE)
         throw std::runtime_error("无效的句柄");
-
 
     cv::Mat matchscreen = cv::imdecode(img1, cv::IMREAD_COLOR);
     cv::Mat matchpic = cv::imread(img2_str.c_str(), cv::IMREAD_COLOR);

@@ -109,7 +109,7 @@ private:
     void until_stop_run();
 
 
-    void input_event(const char *input);
+    void input_password(const char *input);
 
     //注册lua
     void regist_lua_fun(lua_State* lua_status);

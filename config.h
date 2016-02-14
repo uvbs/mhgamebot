@@ -16,7 +16,7 @@ struct GameConfig
     GameConfig():
         lua_txt_name("task.lua"),
         type(LEVEL),
-        start_counts(5)
+        start_counts(1)
     {}
 
     ~GameConfig(){}

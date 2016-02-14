@@ -4,7 +4,7 @@
 
 #include <shlwapi.h>
 #include <boost/filesystem.hpp>
-
+#include <fstream>
 
 void print_err_msg(DWORD msg)
 {
@@ -52,7 +52,7 @@ bool ScriptApp::launcher_game()
     ::PathRemoveFileSpecA(workdir);
     gamepath += " __start_by_mh_launcher__ 919026 0";
     
-    for(int i = 0; i < 5; i++){
+    for(int i = 0; i < config.start_counts; i++){
         sprintf(buf, "%s", gamepath.c_str());
         BOOL bok = ::CreateProcessA(NULL, buf, nullptr, nullptr, FALSE, 0, nullptr, workdir, &ls, &li);
         if(bok == FALSE){
@@ -65,10 +65,9 @@ bool ScriptApp::launcher_game()
     do{
        counts = find_game_window(GAME_WND_CLASS);
     }
-    while(counts != 5);
+    while(counts != config.start_counts);
     
     mhprintf("ok..搞起");
-    
     return false;
 }
 
@@ -122,12 +121,12 @@ int ScriptApp::find_game_window(const std::string& classname)
 {
 
     //清空窗口集合
-    Game_wnd_vec.clear();
+    game_wnds.clear();
 
     HWND wnd = FindWindowExA(NULL, NULL, classname.c_str(), NULL);
     if(wnd != NULL){
         for(;;){
-            Game_wnd_vec.push_back(wnd);
+            game_wnds.push_back(wnd);
 
             wnd = FindWindowExA(NULL, wnd, classname.c_str(), NULL);
             if(wnd == NULL) break;
@@ -135,7 +134,7 @@ int ScriptApp::find_game_window(const std::string& classname)
 
     }
 
-    return Game_wnd_vec.size();
+    return game_wnds.size();
 }
 
 std::string ScriptApp::find_game_path()
@@ -166,9 +165,9 @@ HANDLE ScriptApp::get_process_handle(int nID)//通过进程ID获取进程句柄
 void ScriptApp::close_all_game()
 {
     find_game_window(GAME_WND_CLASS);
-    for(size_t i = 0; i < Game_wnd_vec.size(); i++)
+    for(size_t i = 0; i < game_wnds.size(); i++)
     {
-        HWND wnd = Game_wnd_vec[i];
+        HWND wnd = game_wnds[i];
         DWORD pid;
         ::GetWindowThreadProcessId(wnd, &pid);
         HANDLE process = get_process_handle(pid);
@@ -185,7 +184,7 @@ void ScriptApp::list_window()
     RECT desk_rect;
     ::GetWindowRect(GetDesktopWindow(), &desk_rect);
     
-    for(auto wnd: Game_wnd_vec)
+    for(auto wnd: game_wnds)
     {
         if(y + SCREEN_HEIGHT > desk_rect.bottom - desk_rect.top){
             mhprintf("显示器宽度不够....");
@@ -208,8 +207,11 @@ void ScriptApp::run()
 {
     mhprintf("脚本执行..");
 
+    //读取账户
+    read_accounts();
+            
     find_game_window(GAME_WND_CLASS);
-    if(Game_wnd_vec.size() == 0)
+    if(game_wnds.size() == 0)
     {
         mhprintf("没有找到游戏窗口.");
         mhprintf("那就开启几个...");
@@ -217,44 +219,63 @@ void ScriptApp::run()
     }
 
     hide_chat_window();
-    mhprintf("检测到%d个游戏窗口", Game_wnd_vec.size());
+    mhprintf("检测到%d个游戏窗口", game_wnds.size());
 
     mhprintf("排序窗口");
     list_window();
     
     
     //遍历这台电脑上所有游戏窗口
-    for(size_t i = 0; i < Game_wnd_vec.size(); i++)
+    for(size_t i = 0; i < game_wnds.size(); i++)
     {
 
         char title[256];
-        ::GetWindowTextA(Game_wnd_vec[i], title, 256);
+        ::GetWindowTextA(game_wnds[i], title, 256);
 
 
         //为每个窗口分配一个线程单独操作
-        Game_thread.push_back(std::thread([=]()
+        game_threads.push_back(std::thread([=]()
         {
-            try
-            {
-                GameScript script(Game_wnd_vec[i], i);
+            GameScript script(game_wnds[i], i);
+            try{
                 script.run();
             }
-            catch(const std::runtime_error &e)
-            {
-                mhprintf(e.what());
+            catch(const std::runtime_error &e){
+                script.mhprintf("%s", e.what());
             }
-            catch(...)
-            {
+            catch(...){
                 mhprintf("未知异常!");
             }
         }));
     }
 
     //等待线程全部退出
-    for(size_t i = 0; i < Game_thread.size(); i++)
+    for(size_t i = 0; i < game_threads.size(); i++)
     {
-        Game_thread[i].join();
+        game_threads[i].join();
     }
 
     mhprintf("脚本退出...");
+}
+
+void ScriptApp::read_accounts()
+{
+    try{
+        std::fstream file("帐号.txt");
+        
+        char line[200];
+        file.getline(line, 200);
+        
+        std::string line_str(line);
+        std::string name = line_str.substr(0, line_str.find(','));
+        std::string password = line_str.substr(line_str.find(',')+1, line_str.length());
+        game_accounts[name] = password;    
+        
+        mhprintf("总共读取账号: %d个", game_accounts.size());
+    }
+    catch(...){
+        throw std::runtime_error("error load accounts");
+    }
+    
+    
 }
