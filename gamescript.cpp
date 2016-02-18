@@ -397,6 +397,13 @@ void GameScript::top_wnd()
 void GameScript::regist_lua_fun()
 {
 
+    REGLUAFUN(lua_status, "调试信息", [](lua_State* L)->int{
+        std::string info = lua_tostring(L, 1);
+        script_inst->mhprintf(info.c_str());
+        return 0;
+    });
+
+
     REGLUAFUN(lua_status, "关闭无关窗口", [](lua_State* L)->int{
         script_inst->close_game_wnd_stuff();
         return 0;
@@ -480,7 +487,7 @@ void GameScript::regist_lua_fun()
         cv::Mat bin_img_screen;
         cv::Mat bin_img_pic;
 
-        double thershold = 0.8;
+        double thershold = 0.7;   //太高个别匹配不到
 
         //转换到hsv
         cv::Mat hsv_screen;
@@ -911,16 +918,27 @@ void GameScript::do_daily()
 
     check_combat.join();
 
+
     while(can_task)
     {
-        PLAYER_STATUS status = get_player_status();
-        if(status == NORMAL)
-            call_lua_func("日常1");
-        else if(status == COMBAT)
-            mhprintf("战斗中...");
+        try
+        {
+            PLAYER_STATUS status = get_player_status();
+            if(status == NORMAL)
+                call_lua_func("日常1");
+            else if(status == COMBAT)
+                mhprintf("战斗中...");
 
 
-        mhprintf("一次脚本完成了");
+            mhprintf("一次脚本完成了");
+
+        }
+        catch(exception_xy &e){
+            mhprintf("%s, 重新遍历任务", e.what());
+        }
+        catch(exception_status &e){
+            mhprintf("%s, 重新尝试一次", e.what());
+        }
     }
 }
 

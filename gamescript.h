@@ -45,35 +45,21 @@ public:
     bool check_offline();
     void test_lua(const char* err);
 
+    void set_player_name(std::string name);
+    void call_lua_func(const std::string& name);
+    void load_lua_file(const char *name);
+    void end_task();
 
-public:
     GameConfig* get_config(){
         return &config;
     }
 
-private:
-    GameConfig config;
-    lua_State *lua_status;
-
-    std::string player_name;   //玩家等级
-    std::string player_level;
-    std::list<std::string> lua_func_list;
-
-    bool can_task = true;
-    
-public:
     static GameScript* get_instance(lua_State* L){
         return inst_map[L];
     }
 
 
     void readLuaArray(lua_State *L);
-private:
-    static std::map<lua_State*, GameScript*> inst_map;
-    HWND wnd;
-//    HDC hdc;
-    int script_id;
-
 
     //右键点击, 攻击状态取消攻击
     void rclick(int x, int y);
@@ -119,21 +105,33 @@ private:
     //注册lua
     void regist_lua_fun(lua_State* lua_status);
 
-public:
+
     HWND get_game_wnd(){
         return wnd;
     }
 
-private:
-    std::vector<int> get_mouse_vec(int x, int y, int x2, int y2);
-    int make_mouse_value(int x, int y);
-
-public:
     std::vector<uchar> get_screen_data();
     std::vector<uchar> get_screen_data(const RECT &rcClient);
 
 
 private:
+    std::vector<int> get_mouse_vec(int x, int y, int x2, int y2);
+    int make_mouse_value(int x, int y);
+
+private:
+    static std::map<lua_State*, GameScript*> inst_map;
+    HWND wnd;
+    int script_id;
+
+    GameConfig config;
+    lua_State *lua_status;
+
+    std::string player_name;   //玩家等级
+    std::string player_level;
+    std::list<std::string> lua_func_list;
+
+    bool can_task = true;
+
     HDC hdc;
     std::vector<uchar> imgbuf;
 
@@ -148,11 +146,7 @@ private:
 
     void close_game_wnd_stuff();
     void match_task();
-public:
-    void set_player_name(std::string name);
-    void call_lua_func(const std::string& name);
-    void load_lua_file(const char *name);
-    void end_task();
+
 };
 
 
