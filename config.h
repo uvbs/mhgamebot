@@ -15,7 +15,7 @@ struct GameConfig
 
     GameConfig():
         lua_txt_name("task.lua"),
-        type(LEVEL),
+        type(DAILY),   //默认日常
         start_counts(1)
     {}
 

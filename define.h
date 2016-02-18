@@ -14,8 +14,8 @@
 
 //方便注册自己的函数
 #define REGLUAFUN(z, x, y) \
-    lua_register(z, x, y); \
-    mhprintf("注册函数 %s", x);
+    lua_register(z, x, y);
+//    mhprintf("注册函数 %s", x);
 
 
 struct GAME_WND_INFO
@@ -60,6 +60,7 @@ enum Script_type
     LEVEL, //升级
     MONEY,  //金币
     JIAOMAI, //频道叫卖
+    DAILY, //日常
     SMART //智能   根据当前金币数量, 等级, 任务剩余数量选择要做的事情
 };
 
@@ -74,6 +75,7 @@ const SCRIPT_TYPE_DESC Script_type_desc[] =
     {LEVEL, "等级"},
     {MONEY, "金币"},
     {JIAOMAI, "叫卖"},
+    {DAILY, "日常"},
     {SMART, "智能"}
 };
 

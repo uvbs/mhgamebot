@@ -28,6 +28,7 @@ public:
     void mhprintf(const char *msg, ...);
 
     //做点啥
+    void do_daily();
     void do_task();
     void do_money(){
         mhprintf("什么都没有..");
@@ -43,6 +44,7 @@ public:
     void regist_lua_fun();
     bool check_offline();
     void test_lua(const char* err);
+
 
 public:
     GameConfig* get_config(){
@@ -76,12 +78,15 @@ private:
     //右键点击, 攻击状态取消攻击
     void rclick(int x, int y);
     void rclick(const char *image);
-    void click(int x, int y, bool lbutton = true);
-    void click(const char *image);
+    void click(int x, int y, int lbutton = 1);
+    void click(const char *image, int threshold = 7);
     void click_nofix(int x, int y);
     void click_nofix(const char *image);
-    void click_move(int x, int y, bool lbutton);
+    void click_move(int x, int y, int lbutton);
+    void click_nomove(int x, int y);
 
+    //发送按键
+    void key_press(int vk);
 
     //npc对话中的点击( 会设置焦点 )
     void dialog_click(const char *img);
@@ -106,8 +111,8 @@ private:
 
     POINT get_cur_mouse();
     void rand_move_mouse();
-    void until_stop_run();
-
+    void until_stop_run(int counts = 1000);
+    void top_wnd();
 
     void input_password(const char *input);
 
