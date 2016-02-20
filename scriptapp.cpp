@@ -200,12 +200,29 @@ void ScriptApp::list_window()
         ::SetWindowPos(wnd, NULL, x, y, 0, 0, SWP_NOSIZE | SWP_SHOWWINDOW);
         
         x += SCREEN_WIDTH;
+        x += 20;
     }
+}
+
+void ScriptApp::read_config()
+{
+    mhprintf("选择任务");
+    mhprintf("1, 日常");
+    mhprintf("2, 师门");
+    mhprintf("3, 任务");
+    char c = getchar();
+    if(c == '1') config.type = DAILY;
+    if(c == '2') mhprintf("暂无这个脚本, 按默认");
+    if(c == '3') config.type = LEVEL;
+
+
 }
 
 void ScriptApp::run()
 {
     mhprintf("脚本执行..");
+
+    read_config();
 
     //读取账户
     read_accounts();
@@ -236,22 +253,22 @@ void ScriptApp::run()
         //为每个窗口分配一个线程单独操作
         game_threads.push_back(std::thread([=]()
         {
-            GameScript script(game_wnds[i], i);
             try{
+                GameScript script(game_wnds[i], i);
+                script.set_config(&config);
                 script.run();
             }
             catch(const std::runtime_error &e){
-                script.mhprintf("%s", e.what());
+                mhprintf("%s", e.what());
             }
-            catch(...){
-                mhprintf("未知异常!");
-            }
+//            catch(...){
+//                mhprintf("脚本中没能捕捉的未知异常!");
+//            }
         }));
     }
 
     //等待线程全部退出
-    for(size_t i = 0; i < game_threads.size(); i++)
-    {
+    for(size_t i = 0; i < game_threads.size(); i++){
         game_threads[i].join();
     }
 

@@ -8,6 +8,7 @@
 #include <string>
 #include <map>
 
+
 #include "define.h"
 #include "config.h"
 
@@ -25,7 +26,8 @@ private:
     std::vector<std::thread> game_threads;
     std::map<std::string, std::string> game_accounts;
     GameConfig config;
-    
+
+    void read_config();
 public:
     void mhprintf(const char *msg, ...);
 

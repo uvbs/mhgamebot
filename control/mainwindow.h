@@ -3,7 +3,7 @@
 
 #include <QMainWindow>
 #include "scripttablemodel.h"
-
+#include <QGridLayout>
 
 
 namespace Ui {
@@ -21,6 +21,14 @@ public:
 private slots:
     void on_aboutQtAct_triggered();
     
+    void on_pushButton_clicked();
+
+    void on_action22_triggered();
+
+    void on_action11_2_triggered();
+
+    void on_pushButton_2_clicked();
+
 private:
     Ui::MainWindow *ui;
     ScriptTableModel *model;
