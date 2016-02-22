@@ -15,7 +15,7 @@
 //方便注册自己的函数
 #define REGLUAFUN(z, x, y) \
     lua_register(z, x, y);
-//    mhprintf("注册函数 %s", x);
+//    mhprintf(LOG_NORMAL,"注册函数 %s", x);
 
 
 struct GAME_WND_INFO

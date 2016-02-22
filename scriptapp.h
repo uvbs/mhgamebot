@@ -12,6 +12,31 @@
 #include "define.h"
 #include "config.h"
 
+enum STD_COLOR {
+    DARKBLUE = 1,
+    DARKGREEN,
+    DARKTEAL,
+    DARKRED,
+    DARKPINK,
+    DARKYELLOW,
+    GRAY,
+    DARKGRAY,
+    BLUE,
+    GREEN,
+    TEAL,
+    RED,
+    PINK,
+    YELLOW,
+    WHITE
+};
+
+enum LOG_TYPE{
+    LOG_WARNING,  //警告
+    LOG_DEBUG,  //调试
+    LOG_NORMAL,
+    LOG_ERROR
+};
+
 
 class ScriptApp
 {
@@ -29,7 +54,7 @@ private:
 
     void read_config();
 public:
-    void mhprintf(const char *msg, ...);
+    void mhprintf(LOG_TYPE logtype, const char *msg, ...);
 
 public:
     void run();
@@ -42,7 +67,9 @@ public:
     void list_window(); //排列游戏窗口
 };
 
+void _mhprintf(const char* type, const char* buf, va_list va_args, LOG_TYPE logtype);
 
-void print_err_msg(DWORD msg);
+
+
 
 #endif // SCRIPTAPP_H

@@ -7,21 +7,20 @@ CONFIG += console c++11
 CONFIG -= app_bundle
 CONFIG -= qt
 
-LIBS += libgdi32
-LIBS += libuser32
-LIBS += libshell32
-LIBS += libshlwapi
+LIBS += gdi32.lib
+LIBS += user32.lib
+LIBS += shell32.lib
+LIBS += shlwapi.lib
 
-LIBS += libboost_filesystem-mt
-LIBS += libboost_system-mt
 
-INCLUDEPATH += D:\msys32\usr\src\lua-5.3.2_fixCN\src
-LIBS += D:\msys32\usr\src\lua-5.3.2_fixCN\src\liblua.a
+INCLUDEPATH += D:/mylibrary/lua-5.3.2/src
+INCLUDEPATH += D:/mylibrary/boost_1_59_0
+INCLUDEPATH += D:/mylibrary/opencv/build/include
+LIBS += D:/mylibrary/boost_1_59_0/lib32-msvc-14.0/libboost_filesystem-vc140-mt-gd-1_59.lib
+LIBS += D:/mylibrary/boost_1_59_0/lib32-msvc-14.0/libboost_system-vc140-mt-gd-1_59.lib
+LIBS += D:/mylibrary/boost_1_59_0/lib32-msvc-14.0/libboost_system-vc140-mt-gd-1_59.lib
+LIBS += D:/mylibrary/lua-5.3.2/src/build-lualib-Debug/debug/lualib.lib
 
-LIBS += D:\msys32\mingw32\lib\libopencv_core.dll.a
-LIBS += D:\msys32\mingw32\lib\libopencv_imgproc.dll.a
-LIBS += D:\msys32\mingw32\lib\libopencv_imgcodecs.dll.a
-LIBS += D:\msys32\mingw32\lib\libopencv_highgui.dll.a
 
 SOURCES += main.cpp \
     scriptapp.cpp \

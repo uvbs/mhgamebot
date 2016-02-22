@@ -12,6 +12,7 @@
 #include <opencv2/opencv.hpp>
 #include <mutex>
 
+#include "scriptapp.h"
 #include "define.h"
 #include "config.h"
 
@@ -26,13 +27,13 @@ public:
         lua_close(lua_status);
     }
 
-    void mhprintf(const char *msg, ...);
+    void mhprintf(LOG_TYPE logtype, const char *msg, ...);
 
     //做点啥
     void do_daily();
     void do_task();
     void do_money(){
-        mhprintf("什么都没有..");
+        mhprintf(LOG_NORMAL,"什么都没有..");
     }
 
     //进去游戏
@@ -40,14 +41,13 @@ public:
     PLAYER_STATUS get_player_status();
     void run();
 
-    bool is_in_city(const char *city);
+    bool is_in_city(std::string city);
 
     void regist_lua_fun();
     bool check_offline();
-    void test_lua(const char* err);
 
     void set_player_name(std::string name);
-    void call_lua_func(const std::string& name);
+    void call_lua_func(const char* name);
     void load_lua_file(const char *name);
     void end_task();
 
@@ -107,8 +107,8 @@ public:
         return wnd;
     }
 
-    std::vector<uchar> get_screen_data();
-    std::vector<uchar> get_screen_data(const RECT &rcClient);
+
+    std::vector<uchar> get_screen_data(const RECT &rcClient = rect_game);
 
 
 
@@ -129,6 +129,7 @@ private:
     std::string player_name;   //玩家等级
     std::string player_level;
     std::list<std::string> lua_task_list;
+    std::string lua_task_generic_fun;
 
     bool can_task = true;
 
@@ -147,8 +148,8 @@ private:
     void close_game_wnd_stuff();
     void match_task();
 
-    void process_pic(cv::Mat src, cv::Mat &result);
-    void process_pic_red(cv::Mat src);
+    void process_pic(cv::Mat &src, cv::Mat &result);
+    void process_pic_red(cv::Mat &src);
     void check_pic_exists(std::string &imgfile);
     bool find_color(std::string image, POINT &point);
 };
