@@ -1,5 +1,5 @@
 ﻿#include "scriptapp.h"
-#include <Shlwapi.h>>
+#include <Shlwapi.h>
 
 void set_workdir()
 {

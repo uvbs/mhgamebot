@@ -538,11 +538,11 @@ void GameScript::regist_lua_fun()
         std::string img = lua_tostring(L, 3);
         double threshold = 0.7;
         if(arg_counts == 4)
-            threshold = lua_tointeger(L, 4)/10;
+            threshold = static_cast<double>(lua_tointeger(L, 4)/10);
 
         while(true)
         {
-            script_inst->click(x, y, threshold);
+            script_inst->click(x, y);
             script_inst->until_stop_run();
             script_inst->mhprintf(LOG_NORMAL,"移动一次");
 

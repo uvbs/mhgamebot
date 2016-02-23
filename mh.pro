@@ -35,3 +35,5 @@ HEADERS += \
     define.h \
     gamescript.h
 
+#拷贝到bin目录
+QMAKE_POST_LINK += "copy .\debug\mh.exe ..\bin\mh.exe"
