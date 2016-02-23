@@ -1,5 +1,0 @@
-
-
-function defaulttask()
-   	
-end

@@ -412,7 +412,12 @@ void GameScript::regist_lua_fun()
         int y = lua_tointeger(L, 2);
 
         //转换成窗口坐标
+        POINT pt;
+        script_inst->is_match_pic_in_screen("pic\\关闭.png", pt);
+        pt.x -= 5;
+        pt.y -= 5;   //地图右上角
 
+        if()
 
         return 0;
     });
