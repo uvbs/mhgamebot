@@ -2,8 +2,6 @@
 #include <regex>
 #include <thread>
 #include <boost/lexical_cast.hpp>
-#include <codecvt>
-#include <opencv2/core/types_c.h>
 
 
 #define MHCHATWND "梦幻西游2 聊天窗口"
@@ -407,11 +405,11 @@ void GameScript::regist_lua_fun()
         return 0;
     });
 
-    REGLUAFUN(lua_status, "点击小地图坐标", [](lua_State* L){
+    REGLUAFUN(lua_status, "点击小地图坐标", [](lua_State* L)->int{
 
         //地图中的坐标
-        int x = lua_tostring(L, 1);
-        int y = lua_tostring(L, 2);
+        int x = lua_tointeger(L, 1);
+        int y = lua_tointeger(L, 2);
 
         //转换成窗口坐标
 
@@ -633,6 +631,10 @@ void GameScript::regist_lua_fun()
     });
 
     REGLUAFUN(lua_status, "点击坐标", [](lua_State* L)->int{
+        int counts = lua_gettop(L);
+        if(counts != 2)
+            throw std::runtime_error("点击坐标 参数数量错误");
+
         int x = lua_tointeger(L, 1);
         int y = lua_tointeger(L, 2);
         script_inst->rand_move_mouse();
@@ -700,7 +702,6 @@ void GameScript::regist_lua_fun()
     });
 
     REGLUAFUN(lua_status, "点击任务", [](lua_State* L)->int{
-        std::string imgname = lua_tostring(L, 1);
         POINT pt;
 
         //先检测三个长度的下划线
@@ -1027,12 +1028,6 @@ double GameScript::_match_picture(const cv::Mat screen, const cv::Mat pic, cv::P
     cv::Point maxLoc;
     cv::Mat result;
 
-    // Create the result matrix
-    int result_cols =  screen.cols - pic.cols + 1;
-    int result_rows = screen.rows - pic.rows + 1;
-
-    result.create( result_rows, result_cols, 16 );
-
     //mhprintf(LOG_NORMAL,"%matchpic %d %d", matchpic.size().height, matchpic.size().width);
     //mhprintf(LOG_NORMAL,"%matchscreen %d %d", matchscreen.size().height, matchscreen.size().width);
 
@@ -1174,7 +1169,9 @@ void GameScript::rand_move_mouse()
     int y = rand()%200+200;
 
     int v = make_mouse_value(x, y);
-    ::PostMessage(wnd, WM_MOUSEMOVE, 0, v);
+    for(int i = 0; i < 5; i++){
+        ::PostMessage(wnd, WM_MOUSEMOVE, 0, v);
+    }
 
     //需要延迟一下, 这个延迟是等待界面做出响应
     Sleep(500);
