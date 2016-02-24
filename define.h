@@ -12,6 +12,11 @@
 #define MHCHATWNDCLASS    "XYWZ_CHAT"
 
 
+
+//默认匹配程度
+#define DEFAULT_THERSHOLD 7
+
+
 //方便注册自己的函数
 #define REGLUAFUN(z, x, y) \
     lua_register(z, x, y);
@@ -55,7 +60,7 @@ enum PLAYER_STATUS
 
 //脚本的类型, 设置优先级
 //让脚本能智能的在没有任务时选择事情做
-enum Script_type
+enum SCRIPT_TYPE
 {
     LEVEL, //升级
     MONEY,  //金币
@@ -66,11 +71,11 @@ enum Script_type
 
 struct SCRIPT_TYPE_DESC
 {
-    enum Script_type type;
+    enum SCRIPT_TYPE type;
     std::string str;
 };
 
-const SCRIPT_TYPE_DESC Script_type_desc[] =
+const SCRIPT_TYPE_DESC script_type_desc[] =
 {
     {LEVEL, "等级"},
     {MONEY, "金币"},
@@ -81,7 +86,7 @@ const SCRIPT_TYPE_DESC Script_type_desc[] =
 
 #define SCREEN_WIDTH 640
 #define SCREEN_HEIGHT 480
-const RECT rect_task = {470, 140, SCREEN_WIDTH, SCREEN_HEIGHT};
+const RECT rect_task = {470, 140, SCREEN_WIDTH, SCREEN_HEIGHT - 100};
 const RECT rect_position = {27, 27, 120, 41};
 const RECT rect_game = {0, 0, SCREEN_WIDTH, SCREEN_HEIGHT};
 

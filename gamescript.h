@@ -23,9 +23,7 @@ class GameScript
 
 public:
     GameScript(HWND game_wnd, int id);
-    ~GameScript(){
-        lua_close(lua_status);
-    }
+    ~GameScript();
 
     void mhprintf(LOG_TYPE logtype, const char *msg, ...);
 
@@ -47,7 +45,7 @@ public:
     bool check_offline();
 
     void set_player_name(std::string name);
-    void call_lua_func(const char* name);
+    void call_lua_func(std::string func);
     void load_lua_file(const char *name);
     void end_task();
 
@@ -87,12 +85,12 @@ public:
     void input(const std::string & msg);
 
     //从屏幕匹配
-    bool is_match_pic_in_screen(std::string image, RECT rect = rect_game, int threshold = 7);
-    bool is_match_pic_in_screen(std::string image, POINT &point, RECT rect = rect_game, int threshold = 7);   //参数2: 返回匹配到的POINT结构
+    bool is_match_pic_in_screen(std::string image, RECT rect = rect_game, int threshold = DEFAULT_THERSHOLD);
+    bool is_match_pic_in_screen(std::string image, POINT &point, RECT rect = rect_game, int threshold = DEFAULT_THERSHOLD);   //参数2: 返回匹配到的POINT结构
 
     //匹配
     double match_picture(const std::vector<uchar>& img1, std::string img2, cv::Point &matchLoc);
-    double _match_picture(const cv::Mat screen, const cv::Mat pic, cv::Point &matchLoc);
+    double _match_picture(const cv::Mat& screen, const cv::Mat& pic, cv::Point &matchLoc);
     double match_picture(const std::vector<uchar>& img1, const std::vector<uchar>& img2, cv::Point &matchLoc);
 
 
@@ -108,21 +106,23 @@ public:
     }
 
 
-    std::vector<uchar> get_screen_data(const RECT &rcClient = rect_game);
+    const std::vector<uchar>& get_screen_data(const RECT& rect = rect_game);
 
 
 
     void read_global(bool read);
+    void slow_click(int x, int y, int x1, int y1, int lbutton);
+
 private:
-    std::vector<int> get_mouse_vec(int x, int y, int x2, int y2);
+    void get_mouse_vec(int x, int y, int x2, int y2, std::vector<int>& r);
     int make_mouse_value(int x, int y);
     static std::mutex topwnd_mutex;
 
 private:
+    BYTE *screen_buf;
     static std::map<lua_State*, GameScript*> inst_map;
     HWND wnd;
     int script_id;
-
     GameConfig *config;
     lua_State *lua_status;
 
@@ -134,7 +134,7 @@ private:
     bool can_task = true;
 
     HDC hdc;
-    std::vector<uchar> imgbuf;
+    std::vector<uchar> _screen_data;
 
     //鼠标内能移动的大小和窗口的比, 用来转换窗口座标到游戏内座标
     double ratio_x;
@@ -152,6 +152,7 @@ private:
     void process_pic_red(cv::Mat &src);
     void check_pic_exists(std::string &imgfile);
     bool find_color(std::string image, POINT &point);
+    const std::vector<uchar> &screen_data();
 };
 
 

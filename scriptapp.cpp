@@ -199,10 +199,10 @@ void ScriptApp::run()
     hide_chat_window();
     mhprintf(LOG_NORMAL,"检测到%d个游戏窗口", game_wnds.size());
 
-    mhprintf(LOG_NORMAL,"排序窗口");
-    list_window();
+    //mhprintf(LOG_NORMAL,"排序窗口");
+    //list_window();
     
-    
+
     //遍历这台电脑上所有游戏窗口
     for(size_t i = 0; i < game_wnds.size(); i++)
     {
@@ -262,8 +262,15 @@ void ScriptApp::read_accounts()
     
 }
 
+
+std::mutex print_mutex;
 void _mhprintf(const char *type, const char *buf, va_list va_args, LOG_TYPE logtype)
 {
+    assert(type != nullptr && buf != nullptr);
+
+    //取得互斥
+    std::lock_guard<std::mutex> locker(print_mutex);
+
     if(logtype == LOG_TYPE::LOG_WARNING)
         SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE),STD_COLOR::YELLOW );
     else if(logtype == LOG_TYPE::LOG_DEBUG)
@@ -272,12 +279,14 @@ void _mhprintf(const char *type, const char *buf, va_list va_args, LOG_TYPE logt
         SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE),STD_COLOR::GRAY);
     else if(logtype == LOG_TYPE::LOG_ERROR)
         SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE),STD_COLOR::RED);
-
+    else if(logtype == LOG_TYPE::LOG_INFO)
+        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE),STD_COLOR::PINK);
 
     printf("%s: ", type);
     vprintf(buf, va_args);
     printf("\n");
 
 
-    SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE),STD_COLOR::WHITE );
+
+    SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE),STD_COLOR::GRAY);
 }

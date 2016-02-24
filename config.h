@@ -31,7 +31,7 @@ struct GameConfig
     }
 
 
-    Script_type type;
+    SCRIPT_TYPE type;
     std::string srv_name;  //区名称
     std::string lua_txt_name; //脚本名称
     int start_counts;       //自动开启客户端数量
