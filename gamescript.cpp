@@ -661,28 +661,7 @@ void GameScript::regist_lua_fun()
         std::string imgname = lua_tostring(L, 1);
         imgname.insert(0, "对话框\\");
 
-        bool success = false;
-        //如果不存在, 循环2秒
-        int times = 0;
-        while(times < 5){
-            if(script_inst->is_match_pic_in_screen(imgname) == false){
-                script_inst->mhprintf(LOG_DEBUG, "%s没有在屏幕上找到, 等待", imgname.c_str());
-                Sleep(1000);
-            }
-            else{
-                success = true;
-                script_inst->dialog_click(imgname.c_str());
-                break;
-            }
-
-            times++;
-        }
-
-        if(success == false){
-            script_inst->mhprintf(LOG_WARNING, "依然没有匹配到, 检查脚本!");
-            throw std::runtime_error(imgname.c_str());
-        }
-
+        script_inst->dialog_click(imgname.c_str());
         return 0;
     });
 
