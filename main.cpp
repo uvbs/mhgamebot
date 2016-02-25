@@ -1,6 +1,4 @@
 ﻿#include "scriptapp.h"
-#include <Shlwapi.h>
-
 
 int main(int argc, char *argv[])
 {

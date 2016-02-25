@@ -96,7 +96,7 @@ public:
 
     POINT get_cur_mouse();
     void rand_move_mouse();
-    void until_stop_run(int counts = 1000);
+    void until_stop_run(int counts = 500);
     void top_wnd();
 
     void input_password(const char *input);

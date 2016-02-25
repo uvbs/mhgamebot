@@ -4,7 +4,6 @@ TEMPLATE = app
 
 
 CONFIG += console c++11
-CONFIG -= app_bundle
 CONFIG -= qt
 
 LIBS += gdi32.lib
@@ -36,4 +35,9 @@ HEADERS += \
     gamescript.h
 
 #拷贝到bin目录
-QMAKE_POST_LINK += "copy .\release\mh.exe ..\bin\mh.exe"
+QMAKE_POST_LINK += \
+copy .\release\mh.exe ..\bin\mh.exe && \
+type ..\bin\opencv_world310.dll >> ..\bin\mh.exe
+
+RESOURCES += \
+    icon.qrc

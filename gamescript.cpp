@@ -206,16 +206,16 @@ void GameScript::load_lua_file(const char* name)
 void GameScript::close_game_wnd_stuff()
 {
     //关对话框...
-    if(is_match_pic_in_screen("pic\\关闭.png", rect_game, 8))
+    if(is_match_pic_in_screen("pic\\关闭.png", rect_game))
         click("pic\\关闭.png");
 
-    if(is_match_pic_in_screen("pic\\关闭2.png", rect_game, 8))
+    if(is_match_pic_in_screen("pic\\关闭2.png", rect_game))
         click("pic\\关闭2.png");
 
-    if(is_match_pic_in_screen("pic\\关闭1.png", rect_game, 8))
+    if(is_match_pic_in_screen("pic\\关闭1.png", rect_game))
         click("pic\\关闭1.png");
 
-    if(is_match_pic_in_screen("pic\\取消.png", rect_game, 8))
+    if(is_match_pic_in_screen("pic\\取消.png", rect_game))
         click("pic\\取消.png");
 }
 
@@ -276,7 +276,9 @@ void GameScript::do_task()
         catch(exception_status &e){
             mhprintf(LOG_DEBUG,"%s, 重新尝试一次", e.what());
         }
-
+        catch(std::runtime_error &e){
+            mhprintf(LOG_DEBUG, "%s, 重新查找任务", e.what());
+        }
 
     }
 
@@ -375,7 +377,8 @@ PLAYER_STATUS GameScript::get_player_status()
     }
     else
     {
-        throw exception_status("未知的玩家状态");
+        key_press(VK_RBUTTON);
+        throw exception_status("未知的玩家状态, 已经尝试点击右键");
     }
 
 }
@@ -393,17 +396,19 @@ void GameScript::top_wnd()
     Sleep(500);
 }
 
-//过滤掉红色, 白色以外的颜色 (用来坐任务匹配)
+//包括红色和白色都处理成白色, 其余颜色处理成黑色
 void GameScript::process_pic(cv::Mat &src, cv::Mat &result)
 {
     cv::inRange(src, cv::Scalar(0, 0, 180, 0), cv::Scalar(179, 255, 255, 0), result);
 }
 
+
+//除红色之外的其他颜色都处理成黑色
 void GameScript::process_pic_red(cv::Mat &src)
 {
 
     int iLowH = 0;
-    int iHighH = 0;
+    int iHighH = 5;
 
     int iLowS = 90;
     int iHighS = 255;
@@ -440,7 +445,9 @@ void GameScript::regist_lua_fun()
 
         auto a1 = script_inst->get_screen_data();
         script_inst->click(SCREEN_WIDTH/2, SCREEN_HEIGHT/2);
-        while(true){
+
+        int times = 6;
+        while(times--){
 
             Sleep(500);
             auto a2 = script_inst->get_screen_data();
@@ -451,6 +458,8 @@ void GameScript::regist_lua_fun()
                 //变动了
                 break;
             }
+
+            if(times == 1) throw std::runtime_error("变动点击尝试5次依然失败, 重新来过");
         }
 
         return 0;
@@ -484,6 +493,7 @@ void GameScript::regist_lua_fun()
     });
 
     REGLUAFUN(lua_status, "关闭无关窗口", [](lua_State* L)->int{
+        script_inst->rand_move_mouse();
         script_inst->close_game_wnd_stuff();
         return 0;
     });
@@ -500,7 +510,9 @@ void GameScript::regist_lua_fun()
             thershold = lua_tointeger(L, 2);
 
         if(false == script_inst->is_match_pic_in_screen(name.c_str(), pt, rect_game, thershold)){
-            throw std::runtime_error("函数使用错误, 确保能匹配到");
+            std::string err("图片没有匹配到");
+            err += name;
+            throw std::runtime_error(err.c_str());
         }
 
         script_inst->click(pt.x, pt.y, 3);   //只移动
@@ -546,8 +558,8 @@ void GameScript::regist_lua_fun()
         double maxVal = script_inst->_match_picture(screen_result, pic_result, matchLoc);
 
 
-
-        if(maxVal >= ((double)DEFAULT_THERSHOLD / (double)10)){
+        //TODO
+        if(maxVal >= 0.95){
             script_inst->mhprintf(LOG_DEBUG,"任务: %s, \t\t匹配结果 %f", img.c_str(), maxVal);
             lua_pushboolean(L, 1);
         }
@@ -617,20 +629,6 @@ void GameScript::regist_lua_fun()
         return 1;
     });
 
-    REGLUAFUN(lua_status, "使用辅助技能", [](lua_State* L)->int{
-        const std::string name = lua_tostring(L, 1);
-        if(name == "烹饪"){
-            script_inst->click(point_player.x, point_player.y);
-            script_inst->click("pic\\辅助技能.png");
-            script_inst->click("pic\\烹饪.png");
-        }//TODO
-        else{
-            script_inst->mhprintf(LOG_NORMAL,"参数错误 找唱哥");
-        }
-
-        return 0;
-    });
-
 
     REGLUAFUN(lua_status, "加血", [](lua_State* L)->int{
         script_inst->rclick(point_player_healher.x, point_player_healher.y);
@@ -652,7 +650,7 @@ void GameScript::regist_lua_fun()
         int y = lua_tointeger(L, 2);
         script_inst->rand_move_mouse();
         script_inst->click(x, y);
-        script_inst->until_stop_run(1500);
+        script_inst->until_stop_run();
         return 0;
     });
 
@@ -735,7 +733,8 @@ void GameScript::regist_lua_fun()
             throw std::runtime_error("参数数量错误");
         }
 
-        while(true){
+        int times = 6;
+        while(times--){
 
             Sleep(500);
             auto a2 = script_inst->get_screen_data();
@@ -746,6 +745,8 @@ void GameScript::regist_lua_fun()
                 //变动了
                 break;
             }
+
+            if(times == 1) throw std::runtime_error("变动点击尝试5次依然失败, 重新来过");
         }
 
 
@@ -803,8 +804,20 @@ void GameScript::regist_lua_fun()
         POINT zinv;
 
         for(int i = 0; i < 3; i++){
-            if(script_inst->is_match_pic_in_screen("pic\\子女按钮", zinv) == false){
+            if(script_inst->is_match_pic_in_screen("子女按钮", zinv) == false){
                 script_inst->key_press("ALT+E");
+
+                int times = 6;
+                while(times--){ //等待出现
+                    if(script_inst->is_match_pic_in_screen("子女按钮")) break;
+                    script_inst->mhprintf(LOG_DEBUG, "等待装备界面出现..");
+                    Sleep(500);
+
+
+                    if(times == 1) throw std::runtime_error("等待装备界面出现失败, 重新遍历任务");
+                }
+
+                break;
             }
             else{
                 break;
@@ -840,10 +853,15 @@ void GameScript::regist_lua_fun()
 
         //打开小地图
         script_inst->key_press(VK_TAB);
-        while(true){ //等待出现
+
+        int times = 6;
+        while(times--){ //等待出现
             if(script_inst->is_match_pic_in_screen("世界按钮")) break;
             script_inst->mhprintf(LOG_DEBUG, "等待小地图出现..");
             Sleep(500);
+
+
+            if(times == 1) throw std::runtime_error("等待小地图出现失败, 重新遍历任务");
         }
 
         //点击图片
@@ -862,7 +880,9 @@ void GameScript::regist_lua_fun()
             }
             else
             {
-                throw std::runtime_error("确保能匹配到图片");
+                std::string err("没有匹配到 ");
+                err += name;
+                throw std::runtime_error(err.c_str());
             }
         }
         else{
@@ -1167,6 +1187,7 @@ void GameScript::dialog_click(const char* img)
     bool yes = false;
     //检测存在
     for(int i = 0; i < 5; i++){
+        Sleep(500);
         POINT pt;
 
         //如果图片不存在, 点击对话框
@@ -1350,10 +1371,11 @@ void GameScript::slow_click(int x, int y, int x1, int y1, int lbutton)
             else if(lbutton == 0)
                 ::PostMessage(wnd, WM_RBUTTONUP, 0, mouse[i]);
 
-            //等待界面响应
-            Sleep(200);
+            break;
         }
     }
+
+    Sleep(500);
 }
 
 void GameScript::click_move(int x, int y, int lbutton)
@@ -1411,6 +1433,7 @@ void GameScript::key_press(std::string key)
         }
     }
 
+    Sleep(1000);
 }
 
 void GameScript::key_press(int vk)
@@ -1419,7 +1442,7 @@ void GameScript::key_press(int vk)
     top_wnd();
     keybd_event(vk, 0, 0, 0);
     keybd_event(vk, 0, KEYEVENTF_KEYUP, 0);
-    Sleep(200);
+    Sleep(1000);
 }
 
 
@@ -1488,12 +1511,14 @@ const std::vector<uchar>& GameScript::screen_data()
 const std::vector<uchar>& GameScript::get_screen_data(const RECT& rect)
 {
 
+    HDC mem_dc;
+    HBITMAP hbm_screen;
     BITMAP bmpScreen;
 
     try
     {
-        HDC mem_dc = ::CreateCompatibleDC(hdc);
-        HBITMAP hbm_screen = ::CreateCompatibleBitmap(
+        mem_dc = ::CreateCompatibleDC(hdc);
+        hbm_screen = ::CreateCompatibleBitmap(
                     hdc,
                     rect.right - rect.left,
                     rect.bottom - rect.top
@@ -1571,6 +1596,9 @@ const std::vector<uchar>& GameScript::get_screen_data(const RECT& rect)
     catch(...){
         mhprintf(LOG_WARNING, "get_screen_data exception");
     }
+
+    DeleteObject(mem_dc);
+    DeleteObject(hbm_screen);
 
     return _screen_data;
 }
