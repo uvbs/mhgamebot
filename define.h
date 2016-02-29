@@ -22,6 +22,10 @@
     lua_register(z, x, y);
 //    mhprintf(LOG_NORMAL,"注册函数 %s", x);
 
+#define REGLUADATA(z, x, y) \
+    lua_pushinteger(z, x); \
+    lua_setglobal(z, y);
+
 
 struct GAME_WND_INFO
 {
@@ -55,37 +59,14 @@ enum PLAYER_STATUS
     BIAO,  //镖
     NOTIME, //体验状态
     GC,     //动画状态
-    ATTACK  //点击了选中鼠标状态
-};
-
-//脚本的类型, 设置优先级
-//让脚本能智能的在没有任务时选择事情做
-enum SCRIPT_TYPE
-{
-    LEVEL, //升级
-    MONEY,  //金币
-    JIAOMAI, //频道叫卖
-    DAILY, //日常
-    SMART //智能   根据当前金币数量, 等级, 任务剩余数量选择要做的事情
-};
-
-struct SCRIPT_TYPE_DESC
-{
-    enum SCRIPT_TYPE type;
-    std::string str;
-};
-
-const SCRIPT_TYPE_DESC script_type_desc[] =
-{
-    {LEVEL, "等级"},
-    {MONEY, "金币"},
-    {JIAOMAI, "叫卖"},
-    {DAILY, "日常"},
-    {SMART, "智能"}
+    ATTACK,  //点击了选中鼠标状态
+    UNKNOW
 };
 
 #define SCREEN_WIDTH 640
 #define SCREEN_HEIGHT 480
+
+
 const RECT rect_task = {470, 140, SCREEN_WIDTH, SCREEN_HEIGHT - 100};
 const RECT rect_position = {27, 27, 120, 41};
 const RECT rect_game = {0, 0, SCREEN_WIDTH, SCREEN_HEIGHT};
@@ -101,6 +82,32 @@ const POINT rect_attack = {313,441};   //攻击
 const POINT rect_tools = {331,467};     //道具
 
 
+
+enum STD_COLOR {
+    DARKBLUE = 1,
+    DARKGREEN,
+    DARKTEAL,
+    DARKRED,
+    DARKPINK,
+    DARKYELLOW,
+    GRAY,
+    DARKGRAY,
+    BLUE,
+    GREEN,
+    TEAL,
+    RED,
+    PINK,
+    YELLOW,
+    WHITE
+};
+
+enum LOG_TYPE{
+    LOG_WARNING,  //警告
+    LOG_DEBUG,  //调试
+    LOG_NORMAL, //正常
+    LOG_ERROR,  //错误
+    LOG_INFO     //信息
+};
 
 
 #endif // WNDRECT_H

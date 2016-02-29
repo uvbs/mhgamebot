@@ -12,7 +12,7 @@
 #include <opencv2/opencv.hpp>
 #include <mutex>
 
-#include "scriptapp.h"
+
 #include "define.h"
 #include "config.h"
 
@@ -25,14 +25,9 @@ public:
     GameScript(HWND game_wnd, int id);
     ~GameScript();
 
-    void mhprintf(LOG_TYPE logtype, const char *msg, ...);
+    void mhprintf(LOG_TYPE logtype, const char *msg_format, ...);
+    void set_output_callback(std::function<void(int type, char*)> _callback);
 
-    //做点啥
-    void do_daily();
-    void do_task();
-    void do_money(){
-        mhprintf(LOG_NORMAL,"什么都没有..");
-    }
 
     //进去游戏
     void entry_game();
@@ -46,15 +41,11 @@ public:
 
     void set_player_name(std::string name);
     void call_lua_func(std::string func);
-    void load_lua_file(const char *name);
+    void do_script(std::string filename);
     void end_task();
 
-    void set_config(GameConfig *game_config){
-        config = game_config;
-    }
-
-    GameConfig* get_config(){
-        return config;
+    void set_script(std::string filename){
+        _script_name = filename;
     }
 
     static GameScript* get_instance(lua_State* L){
@@ -113,25 +104,26 @@ public:
     void read_global(bool read);
     void slow_click(int x, int y, int x1, int y1, int lbutton);
 
+    bool is_task_running();
 private:
     void get_mouse_vec(int x, int y, int x2, int y2, std::vector<int>& r);
     int make_mouse_value(int x, int y);
     static std::mutex topwnd_mutex;
+    std::string _script_name;
+    std::function<void(int type, char*)> output_callback;
 
 private:
     BYTE *screen_buf;
     static std::map<lua_State*, GameScript*> inst_map;
     HWND wnd;
     int script_id;
-    GameConfig *config;
     lua_State *lua_status;
 
     std::string player_name;   //玩家等级
     std::string player_level;
     std::list<std::string> lua_task_list;
-    std::string lua_task_generic_fun;
 
-    bool can_task = true;
+    bool task_running = false;
 
     HDC hdc;
     std::vector<uchar> _screen_data;
@@ -146,7 +138,9 @@ private:
     int cur_game_y;
 
     void close_game_wnd_stuff();
-    void match_task();
+
+    //从脚本读取的可用任务列表中匹配任务, 匹配到返回true, 没有返回false
+    bool match_task();
 
     void process_pic(cv::Mat &src, cv::Mat &result);
     void process_pic_red(cv::Mat &src);

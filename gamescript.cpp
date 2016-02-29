@@ -2,7 +2,7 @@
 #include <regex>
 #include <thread>
 #include <boost/lexical_cast.hpp>
-
+#include "helperfun.h"
 
 #define MHCHATWND "梦幻西游2 聊天窗口"
 
@@ -41,7 +41,7 @@ std::mutex GameScript::topwnd_mutex;
 //构造函数
 GameScript::GameScript(HWND game_wnd, int id):
     player_name(std::string("窗口")+boost::lexical_cast<std::string>(id)),
-    player_level("0")
+    output_callback(nullptr)
 {
     script_id = id;
     wnd = game_wnd;
@@ -70,16 +70,28 @@ GameScript::GameScript(HWND game_wnd, int id):
 
 GameScript::~GameScript()
 {
+
     lua_close(lua_status);
     ReleaseDC(wnd,hdc);
 }
 
-void GameScript::mhprintf(LOG_TYPE logtype,const char* msg, ...)
+void GameScript::mhprintf(LOG_TYPE logtype,const char* msg_format, ...)
 {
     va_list va_args;
-    va_start(va_args, msg);
-    _mhprintf(player_name.c_str(), msg, va_args, logtype);
+    va_start(va_args, msg_format);
+    //_mhprintf(player_name.c_str(), msg, va_args, logtype);
+    char buf[256];
+    vsprintf(buf, msg_format, va_args);
+    if(output_callback != nullptr){
+        output_callback(logtype, buf);
+    }
+
     va_end(va_args);
+}
+
+void GameScript::set_output_callback(std::function<void (int type, char *)> _callback)
+{
+    output_callback = _callback;
 }
 
 
@@ -122,33 +134,16 @@ void GameScript::call_lua_func(std::string func)
     if(func.find("()") == std::string::npos)
         func += "()";
 
-    luaL_dostring(lua_status, func.c_str());
+    if(0 != luaL_dostring(lua_status, func.c_str())){
+
+        const char * err = lua_tostring(lua_status, -1);
+        mhprintf(LOG_NORMAL,err);
+        lua_pop(lua_status, 1);
+
+        throw std::runtime_error("加载lua脚本失败");
+    }
 }
 
-void GameScript::match_task()
-{
-    bool finded = false;
-    for(auto name :lua_task_list)
-    {
-        //backup
-        std::string taskname(name);
-        check_pic_exists(taskname);
-
-        if(is_match_pic_in_screen(taskname.c_str()))
-        {
-            mhprintf(LOG_NORMAL,"开始任务->%s", taskname.c_str());
-            call_lua_func(name.c_str());
-            finded = true;
-            break;
-        }
-    }
-
-    if(finded == false){
-        call_lua_func(lua_task_generic_fun.c_str());
-        mhprintf(LOG_DEBUG, "调用通用任务处理");
-    }
-
-}
 
 void GameScript::read_global(bool read)
 {
@@ -171,11 +166,9 @@ void GameScript::read_global(bool read)
                 lua_task_list.erase(it);
             }
             else{
-                if(name.find("通用_") == std::string::npos){
+                if(name.find("通用_") == std::string::npos &&
+                        name.find("脚本") == std::string::npos){
                     lua_task_list.push_back(name);
-                }
-                else{
-                    lua_task_generic_fun = name;
                 }
             }
         }
@@ -188,18 +181,19 @@ void GameScript::read_global(bool read)
     mhprintf(LOG_DEBUG,"检测到脚本任务数量: %d", lua_task_list.size());
 }
 
-void GameScript::load_lua_file(const char* name)
+void GameScript::do_script(std::string filename)
 {
+    mhprintf(LOG_NORMAL,"加载脚本: %s", filename.c_str());
+
     //加载任务脚本
-    if(0 != luaL_dofile(lua_status, name))
+    if(0 != luaL_dofile(lua_status, filename.c_str()))
     {
         const char * err = lua_tostring(lua_status, -1);
         mhprintf(LOG_NORMAL,err);
         lua_pop(lua_status, 1);
+
         throw std::runtime_error("加载lua脚本失败");
     }
-
-    mhprintf(LOG_NORMAL,"加载脚本: %s 完成", name);
 }
 
 //关掉一些东西
@@ -219,72 +213,26 @@ void GameScript::close_game_wnd_stuff()
         click("pic\\取消.png");
 }
 
-void GameScript::do_task()
+bool GameScript::match_task()
 {
-    can_task = true;
-
-    //之前遍历一次
-    read_global(true);
-    load_lua_file("任务.lua");
-    read_global(false);
-
-    load_lua_file("任务-战斗.lua");
-
-    while(can_task)
+    bool finded = false;
+    for(auto name :lua_task_list)
     {
+        //backup
+        std::string taskname(name);
+        check_pic_exists(taskname);
 
-        try
+        if(is_match_pic_in_screen(taskname.c_str()))
         {
-
-            if(check_offline()) break;
-            close_game_wnd_stuff();
-
-            PLAYER_STATUS status = get_player_status();
-            if(status == PLAYER_STATUS::COMBAT)
-            {
-                //自动战斗中
-                if(is_match_pic_in_screen("pic\\自动战斗中"))
-                {
-
-                }
-                else
-                {
-                    //有菜单出现再进行操作
-                    if(is_match_pic_in_screen("pic\\战斗-菜单2"))
-                    {
-                        call_lua_func("战斗回调");
-                        bool processed = lua_toboolean(lua_status, -1);
-                        if(processed == false){
-                            //无事可做, 自动战斗吧
-                            click("pic\\自动战斗.png");
-                        }
-                    }
-                }
-
-
-            }
-            else if(status == PLAYER_STATUS::NORMAL){
-                match_task();
-            }
-            else if(status == PLAYER_STATUS::GC){
-                click("跳过动画");
-            }
+            mhprintf(LOG_NORMAL,"开始任务->%s", taskname.c_str());
+            call_lua_func(name.c_str());
+            finded = true;
+            break;
         }
-        catch(exception_xy &e){
-            mhprintf(LOG_DEBUG,"%s, 重新遍历任务", e.what());
-        }
-        catch(exception_status &e){
-            mhprintf(LOG_DEBUG,"%s, 重新尝试一次", e.what());
-        }
-        catch(std::runtime_error &e){
-            mhprintf(LOG_DEBUG, "%s, 重新查找任务", e.what());
-        }
-
     }
 
-    can_task = true;
+    return finded;
 }
-
 
 //当前玩家的状态
 //登录界面
@@ -377,17 +325,21 @@ PLAYER_STATUS GameScript::get_player_status()
     }
     else
     {
-        key_press(VK_RBUTTON);
-        throw exception_status("未知的玩家状态, 已经尝试点击右键");
+        //key_press(VK_RBUTTON);
+        //throw exception_status("未知的玩家状态, 已经尝试点击右键");
     }
 
 }
 
+bool GameScript::is_task_running()
+{
+    return task_running;
+}
 
 //结束任务
 void GameScript::end_task()
 {
-    can_task = false;
+    task_running = false;
 }
 
 void GameScript::top_wnd()
@@ -440,6 +392,31 @@ void GameScript::check_pic_exists(std::string & imgfile)
 
 void GameScript::regist_lua_fun()
 {
+    REGLUADATA(lua_status, COMBAT, "战斗状态");
+    REGLUADATA(lua_status, NORMAL, "正常状态");
+    REGLUADATA(lua_status, GC, "动画状态");
+    REGLUADATA(lua_status, UNKNOW, "未知状态");
+
+
+    REGLUAFUN(lua_status, "匹配任务", [](lua_State* L)->int{
+        lua_pushboolean(L, script_inst->match_task());
+        return 1;
+    });
+
+    REGLUAFUN(lua_status, "获取玩家状态", [](lua_State* L)->int{
+        lua_pushinteger(L, script_inst->get_player_status());
+        return 1;
+    });
+
+    REGLUAFUN(lua_status, "检测离线", [](lua_State* L)->int{
+        lua_pushboolean(L, script_inst->check_offline());
+        return 0;
+    });
+
+    REGLUAFUN(lua_status, "任务结束标志", [](lua_State* L)->int{
+        lua_pushboolean(L, script_inst->is_task_running());
+        return 1;
+    });
 
     REGLUAFUN(lua_status, "对话", [](lua_State* L)->int{
 
@@ -898,68 +875,44 @@ void GameScript::regist_lua_fun()
 
 void GameScript::run()
 {
-    //运行脚本
+    task_running = true;
     mhprintf(LOG_NORMAL,"线程ID:%d, 脚本执行", std::this_thread::get_id());
 
     regist_lua_fun();
-    load_lua_file("lualib\\gamefun.lua");
+    do_script("lualib\\gamefun.lua");
 
 
-    mhprintf(LOG_NORMAL,"开始进入游戏");
-    entry_game();
-    mhprintf(LOG_NORMAL,"进去游戏[完成]");
+    //mhprintf(LOG_NORMAL,"进入游戏..");
+    //entry_game();
+    //mhprintf(LOG_NORMAL,"进去游戏..完成");
 
+    read_global(true);
+    do_script(_script_name);
+    read_global(false);
 
-    mhprintf(LOG_NORMAL,"执行脚本: %d", config->type);
-
-    if(config->type == SCRIPT_TYPE::SMART){
-
-    }
-    else if(config->type == SCRIPT_TYPE::MONEY){
-        do_money();
-    }
-    else if(config->type == SCRIPT_TYPE::LEVEL){
-        do_task();
-    }
-    else if(config->type == SCRIPT_TYPE::DAILY){
-        do_daily();  //日常
-    }
-    else{
-        throw std::runtime_error("未知脚本类型");
-    }
-
-}
-
-void GameScript::do_daily()
-{
-    can_task = true;
-    load_lua_file("日常.lua");
-    load_lua_file("日常-战斗.lua");
-
-
-    while(can_task)
-    {
-        try
-        {
-            PLAYER_STATUS status = get_player_status();
-            if(status == NORMAL)
-                call_lua_func("日常1");
-            else if(status == COMBAT){
-
-            }
-        }
-        catch(exception_xy &e){
-            mhprintf(LOG_DEBUG,"%s, 重新遍历任务", e.what());
+    //这是个阻塞调用, 异常返回, 或者正常结束返回
+    while(task_running){
+        try{
+            call_lua_func("脚本入口");
         }
         catch(exception_status &e){
-            mhprintf(LOG_DEBUG,"%s, 重新尝试一次", e.what());
+            mhprintf(LOG_DEBUG, "%s", e.what());
+        }
+        catch(exception_xy &e){
+            mhprintf(LOG_DEBUG, "%s", e.what());
         }
         catch(std::runtime_error &e){
-            mhprintf(LOG_DEBUG, "%s, 重新尝试调用任务", e.what());
+            mhprintf(LOG_DEBUG, "%s", e.what());
         }
-
-        Sleep(500);
+        catch(std::logic_error &e){
+            mhprintf(LOG_DEBUG, "%s", e.what());
+        }
+        catch(...){
+            mhprintf(LOG_DEBUG, "脚本未知异常");
+        }
     }
+
+    task_running = false;
 }
 
 int GameScript::make_mouse_value(int x, int y)

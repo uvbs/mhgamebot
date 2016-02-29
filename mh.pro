@@ -1,10 +1,11 @@
 
 
+QT += core gui widgets
+
+CONFIG += c++11
 TEMPLATE = app
+TARGET = mh
 
-
-CONFIG += console c++11
-CONFIG -= qt
 
 LIBS += gdi32.lib
 LIBS += user32.lib
@@ -24,20 +25,35 @@ LIBS += D:/mylibrary/lua-5.3.2/src/build-Release/release/lualib.lib
 LIBS += D:\mylibrary\opencv\build\x64\vc14\lib\opencv_world310.lib
 
 SOURCES += main.cpp \
-    scriptapp.cpp \
     gamescript.cpp \
-    config.cpp
+    config.cpp \
+    mainwindow.cpp \
+    selecttask.cpp \
+    helperfun.cpp \
+    scriptmanager.cpp \
+    optiondlg.cpp
 
 HEADERS += \
-    scriptapp.h \
     config.h \
     define.h \
-    gamescript.h
+    gamescript.h \
+    mainwindow.h \
+    selecttask.h \
+    helperfun.h \
+    scriptmanager.h \
+    optiondlg.h
 
 #拷贝到bin目录
 QMAKE_POST_LINK += \
 copy .\release\mh.exe ..\bin\mh.exe && \
-type ..\bin\opencv_world310.dll >> ..\bin\mh.exe
+type ..\bin\qt5core.dll >> ..\bin\mh.exe
 
 RESOURCES += \
     icon.qrc
+
+FORMS += \
+    mainwindow.ui \
+    selecttask.ui \
+    optiondlg.ui
+
+DISTFILES +=

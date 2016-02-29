@@ -1,11 +1,24 @@
-﻿#include "scriptapp.h"
+﻿#include "scriptmanager.h"
+#include "mainwindow.h"
+#include <QApplication>
+#include <QStyleFactory>
+#include <QStyle>
+#include <QFile>
+
 
 int main(int argc, char *argv[])
 {
-    ScriptApp app;
-    app.run();
+    QApplication app(argc, argv);
+    QApplication::setStyle("Fusion");
 
-    system("pause");
-    return 0;
+    QFile file(":/resource/stylecss.css");
+    file.open(QFile::ReadOnly);
+    app.setStyleSheet(file.readAll());
+
+
+    MainWindow wnd;
+    wnd.show();
+
+    return app.exec();
 }
 

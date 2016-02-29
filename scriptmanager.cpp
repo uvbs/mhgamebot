@@ -1,6 +1,8 @@
-﻿#include "scriptapp.h"
+﻿#include "scriptmanager.h"
 #include "config.h"
 #include "gamescript.h"
+#include "helperfun.h"
+
 
 #include <shlwapi.h>
 #include <boost/filesystem.hpp>
@@ -8,11 +10,14 @@
 
 
 
-ScriptApp::ScriptApp()
+
+ScriptManager::ScriptManager()
 {
+    script_filename = "";
+    get_game_counts();
 }
 
-bool ScriptApp::launcher_game()
+bool ScriptManager::launcher_game(int new_counts)
 {
     char buf[500];
     std::string gamepath = find_game_path();
@@ -34,7 +39,7 @@ bool ScriptApp::launcher_game()
     ::PathRemoveFileSpecA(workdir);
     gamepath += " __start_by_mh_launcher__ 919026 0";
     
-    for(int i = 0; i < config.start_counts; i++){
+    for(int i = 0; i < new_counts; i++){
         sprintf(buf, "%s", gamepath.c_str());
         BOOL bok = ::CreateProcessA(NULL, buf, nullptr, nullptr, FALSE, 0, nullptr, workdir, &ls, &li);
         if(bok == FALSE){
@@ -47,22 +52,59 @@ bool ScriptApp::launcher_game()
     do{
        counts = find_game_window(GAME_WND_CLASS);
     }
-    while(counts != config.start_counts);
+    while(counts != new_counts);
     
     mhprintf(LOG_NORMAL,"ok..搞起");
     return false;
 }
 
 
-void ScriptApp::mhprintf(LOG_TYPE logtype, const char *msg, ...)
+void ScriptManager::mhprintf(LOG_TYPE logtype, const char *msg_format, ...)
 {
     va_list va_args;
-    va_start(va_args, msg);
-    _mhprintf("脚本", msg, va_args, logtype);
+    va_start(va_args, msg_format);
+    //_mhprintf("脚本", msg_format, va_args, logtype);
+    char buf[256];
+    vsprintf(buf, msg_format, va_args);
+    if(output_callback != nullptr)
+        output_callback(logtype, buf);
     va_end(va_args);
 }
 
-int ScriptApp::hide_chat_window()
+void ScriptManager::set_output_callback(std::function<void(int type, char*)> _callback)
+{
+    output_callback = _callback;
+}
+
+void ScriptManager::set_script(std::string filename)
+{
+    mhprintf(LOG_DEBUG, "选定脚本: %s", filename.c_str());
+    script_filename = filename;
+}
+
+void ScriptManager::set_gamescript_callback_list(std::vector<std::function<void (int type, char *)> > list)
+{
+    _game_callback_list = list;
+}
+
+
+void ScriptManager::stop()
+{
+    for(auto script: game_scripts){
+        script->end_task();
+    }
+
+    wait_thread_exit();
+}
+
+void ScriptManager::pause()
+{
+    for(auto script: game_scripts){
+        script->end_task();
+    }
+}
+
+int ScriptManager::hide_chat_window()
 {
     HWND wnd = FindWindowExA(NULL, NULL, MHCHATWNDCLASS, NULL);
     if(wnd != NULL){
@@ -78,7 +120,7 @@ int ScriptApp::hide_chat_window()
     return 0;
 }
 
-int ScriptApp::find_game_window(const std::string& classname)
+int ScriptManager::find_game_window(const std::string& classname)
 {
 
     //清空窗口集合
@@ -98,7 +140,7 @@ int ScriptApp::find_game_window(const std::string& classname)
     return game_wnds.size();
 }
 
-std::string ScriptApp::find_game_path()
+std::string ScriptManager::find_game_path()
 {
     //从c盘找 pg 目录下有没有梦幻西游文件夹
     char drivers[] = "CDEF";
@@ -116,14 +158,14 @@ std::string ScriptApp::find_game_path()
     return "";
 }
 
-HANDLE ScriptApp::get_process_handle(int nID)//通过进程ID获取进程句柄
+HANDLE ScriptManager::get_process_handle(int nID)//通过进程ID获取进程句柄
 {
     return OpenProcess(PROCESS_ALL_ACCESS, FALSE, nID);
 }
 
 
 //关闭所有窗口
-void ScriptApp::close_all_game()
+void ScriptManager::close_all_game()
 {
     find_game_window(GAME_WND_CLASS);
     for(size_t i = 0; i < game_wnds.size(); i++)
@@ -136,7 +178,7 @@ void ScriptApp::close_all_game()
     }
 }
 
-void ScriptApp::list_window()
+void ScriptManager::list_window()
 {
     int x = 0;
     int y = 0;
@@ -165,36 +207,55 @@ void ScriptApp::list_window()
     }
 }
 
-void ScriptApp::read_config()
+void ScriptManager::wait_thread_exit()
 {
-    mhprintf(LOG_NORMAL,"选择任务");
-    mhprintf(LOG_NORMAL,"1, 日常");
-    mhprintf(LOG_NORMAL,"2, 师门");
-    mhprintf(LOG_NORMAL,"3, 任务");
-    char c = getchar();
-    if(c == '1') config.type = DAILY;
-    if(c == '2') mhprintf(LOG_NORMAL,"暂无这个脚本, 按默认");
-    if(c == '3') config.type = LEVEL;
 
-
+    //等待线程全部退出
+    for(size_t i = 0; i < game_threads.size(); i++){
+        game_threads[i].join();
+    }
 }
 
-void ScriptApp::run()
+
+//查看当前窗口数量
+int ScriptManager::get_game_counts()
 {
-    mhprintf(LOG_NORMAL,"脚本执行..");
+    return find_game_window(GAME_WND_CLASS);
+}
 
-    read_config();
-
-    //读取账户
-    read_accounts();
-            
-    find_game_window(GAME_WND_CLASS);
+void ScriptManager::create_game()
+{
     if(game_wnds.size() == 0)
     {
         mhprintf(LOG_NORMAL,"没有找到游戏窗口.");
-        mhprintf(LOG_NORMAL,"那就开启几个...");
-        launcher_game();
+        mhprintf(LOG_NORMAL,"开启几个..");
+        //launcher_game();
     }
+    else{
+
+    }
+}
+
+void ScriptManager::delete_all_script()
+{
+    for(auto script: game_scripts){
+        delete script;
+    }
+
+    game_scripts.clear();
+    game_threads.clear();
+
+}
+
+void ScriptManager::run()
+{
+    mhprintf(LOG_NORMAL,"脚本执行..");
+
+    delete_all_script();
+
+    //读取账户
+    read_accounts();
+
 
     hide_chat_window();
     mhprintf(LOG_NORMAL,"检测到%d个游戏窗口", game_wnds.size());
@@ -207,41 +268,24 @@ void ScriptApp::run()
     for(size_t i = 0; i < game_wnds.size(); i++)
     {
 
-        char title[256];
-        ::GetWindowTextA(game_wnds[i], title, 256);
-
-
         //为每个窗口分配一个线程单独操作
-        game_threads.push_back(std::thread([=]()
-        {
-            try{
+        game_threads.push_back(std::thread([=](){
 
-                GameScript script(game_wnds[i], i);
-                script.set_config(&config);
-                script.run();
-            }
-            catch(std::logic_error &e){
-                mhprintf(LOG_ERROR, "%s", e.what());
-            }
-            catch(const std::runtime_error &e){
-                mhprintf(LOG_ERROR,"%s", e.what());
-            }
-            catch(...){
-                mhprintf(LOG_ERROR,"脚本中没能捕捉的未知异常!");
-            }
+            GameScript* script = new GameScript(game_wnds[i], i);
+
+            game_scripts.push_back(script);
+
+            script->set_script(script_filename);
+            script->set_output_callback(_game_callback_list[i]);
+            script->run();
         }));
     }
-
-    //等待线程全部退出
-    for(size_t i = 0; i < game_threads.size(); i++){
-        game_threads[i].join();
-    }
-
-    mhprintf(LOG_NORMAL,"脚本退出...");
 }
 
-void ScriptApp::read_accounts()
+void ScriptManager::read_accounts()
 {
+    game_accounts.clear();
+
     try{
         std::fstream file("帐号.txt");
         
@@ -263,30 +307,3 @@ void ScriptApp::read_accounts()
 }
 
 
-std::mutex print_mutex;
-void _mhprintf(const char *type, const char *buf, va_list va_args, LOG_TYPE logtype)
-{
-    assert(type != nullptr && buf != nullptr);
-
-    //取得互斥
-    std::lock_guard<std::mutex> locker(print_mutex);
-
-    if(logtype == LOG_TYPE::LOG_WARNING)
-        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE),STD_COLOR::YELLOW );
-    else if(logtype == LOG_TYPE::LOG_DEBUG)
-        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE),STD_COLOR::GREEN );
-    else if(logtype == LOG_TYPE::LOG_NORMAL)
-        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE),STD_COLOR::GRAY);
-    else if(logtype == LOG_TYPE::LOG_ERROR)
-        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE),STD_COLOR::RED);
-    else if(logtype == LOG_TYPE::LOG_INFO)
-        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE),STD_COLOR::PINK);
-
-    printf("%s: ", type);
-    vprintf(buf, va_args);
-    printf("\n");
-
-
-
-    SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE),STD_COLOR::GRAY);
-}
