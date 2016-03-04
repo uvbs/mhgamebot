@@ -4,6 +4,7 @@
 #include <boost/lexical_cast.hpp>
 #include "helperfun.h"
 
+
 #define MHCHATWND "梦幻西游2 聊天窗口"
 
 #define  script_inst  GameScript::get_instance(L)
@@ -89,9 +90,19 @@ void GameScript::mhprintf(LOG_TYPE logtype,const char* msg_format, ...)
     va_end(va_args);
 }
 
-void GameScript::set_output_callback(std::function<void (int type, char *)> _callback)
+void GameScript::set_output_callback(output_fun _callback)
 {
     output_callback = _callback;
+}
+
+void GameScript::send_pic_to_helper(TCP_DAMA_PARAM *param, const char *data, int len)
+{
+    help_callback(param, data, len);
+}
+
+void GameScript::set_sendhelp_callback(help_fun callback)
+{
+    help_callback = callback;
 }
 
 
@@ -326,7 +337,7 @@ PLAYER_STATUS GameScript::get_player_status()
     else
     {
         //key_press(VK_RBUTTON);
-        //throw exception_status("未知的玩家状态, 已经尝试点击右键");
+        throw exception_status("未知的玩家状态, 已经尝试点击右键");
     }
 
 }
@@ -397,6 +408,38 @@ void GameScript::regist_lua_fun()
     REGLUADATA(lua_status, GC, "动画状态");
     REGLUADATA(lua_status, UNKNOW, "未知状态");
 
+    REGLUAFUN(lua_status, "发送人工请求", [](lua_State* L)->int{
+
+        //检测是否需要人工
+        POINT pt;
+        if(script_inst->is_match_pic_in_screen("面对着你的角色", pt)){
+            RECT rect;
+            rect.left = pt.x-50;
+            rect.top = pt.y;
+            rect.right = rect.left + 100;
+            rect.bottom = rect.top + 200;
+
+            //获取这块区域数据
+            const std::vector<uchar>& pic = script_inst->get_screen_data(rect);
+            cv::Mat mat_pic = cv::imdecode(pic, cv::IMREAD_COLOR);
+
+
+            struct TCP_DAMA_PARAM param;
+            param.width = mat_pic.cols;
+            param.height = mat_pic.rows;
+            param.x = pt.x - 50;
+            param.y = pt.y;
+
+            //回调到上层
+            script_inst->send_pic_to_helper(&param, (const char*)&pic[0], pic.size());
+
+        }
+        else{
+            throw std::runtime_error("没有找到需要人工的标志");
+        }
+
+        return 0;
+    });
 
     REGLUAFUN(lua_status, "匹配任务", [](lua_State* L)->int{
         lua_pushboolean(L, script_inst->match_task());
@@ -873,7 +916,7 @@ void GameScript::regist_lua_fun()
     });
 }
 
-void GameScript::run()
+void GameScript::run(std::string script_name)
 {
     task_running = true;
     mhprintf(LOG_NORMAL,"线程ID:%d, 脚本执行", std::this_thread::get_id());
@@ -887,7 +930,7 @@ void GameScript::run()
     //mhprintf(LOG_NORMAL,"进去游戏..完成");
 
     read_global(true);
-    do_script(_script_name);
+    do_script(script_name);
     read_global(false);
 
     //这是个阻塞调用, 异常返回, 或者正常结束返回

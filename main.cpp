@@ -1,5 +1,6 @@
 ﻿#include "scriptmanager.h"
 #include "mainwindow.h"
+
 #include <QApplication>
 #include <QStyleFactory>
 #include <QStyle>

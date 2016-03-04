@@ -82,9 +82,9 @@ void ScriptManager::set_script(std::string filename)
     script_filename = filename;
 }
 
-void ScriptManager::set_gamescript_callback_list(std::vector<std::function<void (int type, char *)> > list)
+void ScriptManager::set_gamescript_callback_list(std::vector<output_fun> list)
 {
-    _game_callback_list = list;
+    _game_output_callback_list = list;
 }
 
 
@@ -238,32 +238,53 @@ void ScriptManager::create_game()
 
 void ScriptManager::delete_all_script()
 {
+
+    //停止工作
+    stop();
+
+    //删除所有脚本
     for(auto script: game_scripts){
         delete script;
     }
+
 
     game_scripts.clear();
     game_threads.clear();
 
 }
 
+void ScriptManager::set_helper_callback(help_fun callback)
+{
+    for(auto script: game_scripts){
+        script->set_sendhelp_callback(callback);
+    }
+}
+
 void ScriptManager::run()
 {
-    mhprintf(LOG_NORMAL,"脚本执行..");
+    if(script_filename.empty()){
+        mhprintf(LOG_WARNING, "先设置要加载的脚本");
+        return;
+    }
+
+
+    mhprintf(LOG_NORMAL,"执行脚本..");
 
     delete_all_script();
 
     //读取账户
     read_accounts();
+    mhprintf(LOG_NORMAL,"读取游戏账号: %d个", game_accounts.size());
 
+
+    mhprintf(LOG_WARNING,"检测到%d个游戏窗口", game_wnds.size());
 
     hide_chat_window();
-    mhprintf(LOG_NORMAL,"检测到%d个游戏窗口", game_wnds.size());
+    mhprintf(LOG_WARNING, "隐藏游戏聊天窗口");
 
     //mhprintf(LOG_NORMAL,"排序窗口");
     //list_window();
     
-
     //遍历这台电脑上所有游戏窗口
     for(size_t i = 0; i < game_wnds.size(); i++)
     {
@@ -275,9 +296,9 @@ void ScriptManager::run()
 
             game_scripts.push_back(script);
 
-            script->set_script(script_filename);
-            script->set_output_callback(_game_callback_list[i]);
-            script->run();
+            script->set_sendhelp_callback(_game_helper_callback);
+            script->set_output_callback(_game_output_callback_list[i]);
+            script->run(script_filename);
         }));
     }
 }
@@ -296,8 +317,7 @@ void ScriptManager::read_accounts()
         std::string name = line_str.substr(0, line_str.find(','));
         std::string password = line_str.substr(line_str.find(',')+1, line_str.length());
         game_accounts[name] = password;    
-        
-        mhprintf(LOG_NORMAL,"总共读取账号: %d个", game_accounts.size());
+
     }
     catch(...){
         throw std::runtime_error("error load accounts");

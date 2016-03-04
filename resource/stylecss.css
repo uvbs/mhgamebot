@@ -1,19 +1,18 @@
 ﻿*{
     font: 9pt "微软雅黑";
-    background-color: rgb(45, 45, 45);
-    color: rgb(85, 170, 255);
-    border-color: rgb(85, 170, 255);
+    background-color: rgb(57, 57, 57);
+    color: white;
 }
 
 QStatusBar {
-    border-top: 1px solid rgb(21, 21, 21);;
+    background-color: rgb(89,89,89);
 }
 
 QLineEdit, QPushButton{
     background-color: black;
     border-style: none;
     height: 20px;
-    width: 100px;
+    width: 80px;
 }
 
 QPushButton:hover{

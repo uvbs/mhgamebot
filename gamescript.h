@@ -12,9 +12,13 @@
 #include <opencv2/opencv.hpp>
 #include <mutex>
 
+#include "../control/protocol.h"
 
 #include "define.h"
 #include "config.h"
+
+using help_fun = std::function<void(TCP_DAMA_PARAM*, const char*, int)>;
+using output_fun = std::function<void(int type, char*)>;
 
 
 //表示一个控制窗口的脚本
@@ -26,13 +30,21 @@ public:
     ~GameScript();
 
     void mhprintf(LOG_TYPE logtype, const char *msg_format, ...);
-    void set_output_callback(std::function<void(int type, char*)> _callback);
+
+    //设置输出信息的回调
+    void set_output_callback(output_fun _callback);
+
+    //设置发送到人工服务器的回调
+    void set_sendhelp_callback(help_fun callback);
+
+    //发送图片到人工服务器
+    void send_pic_to_helper(TCP_DAMA_PARAM *param, const char* data, int len);
 
 
     //进去游戏
     void entry_game();
     PLAYER_STATUS get_player_status();
-    void run();
+    void run(std::string script_name);
 
     bool is_in_city(std::string city);
 
@@ -44,9 +56,6 @@ public:
     void do_script(std::string filename);
     void end_task();
 
-    void set_script(std::string filename){
-        _script_name = filename;
-    }
 
     static GameScript* get_instance(lua_State* L){
         return inst_map[L];
@@ -108,9 +117,11 @@ public:
 private:
     void get_mouse_vec(int x, int y, int x2, int y2, std::vector<int>& r);
     int make_mouse_value(int x, int y);
+
+
+    //获得焦点的互斥
     static std::mutex topwnd_mutex;
     std::string _script_name;
-    std::function<void(int type, char*)> output_callback;
 
 private:
     BYTE *screen_buf;
@@ -147,6 +158,9 @@ private:
     void check_pic_exists(std::string &imgfile);
     bool find_color(std::string image, POINT &point);
     const std::vector<uchar> &screen_data();
+
+    output_fun output_callback;
+    help_fun help_callback;
 };
 
 

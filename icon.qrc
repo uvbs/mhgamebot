@@ -2,5 +2,6 @@
     <qresource prefix="/">
         <file>resource/icon.png</file>
         <file>resource/stylecss.css</file>
+        <file>resource/dbg.ico</file>
     </qresource>
 </RCC>

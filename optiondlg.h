@@ -1,4 +1,4 @@
-#ifndef OPTIONDLG_H
+﻿#ifndef OPTIONDLG_H
 #define OPTIONDLG_H
 
 #include <QDialog>
@@ -17,6 +17,8 @@ public:
 
 private slots:
     void on_buttonBox_accepted();
+
+    void on_checkBox_autostartgame_clicked();
 
 private:
     Ui::optiondlg *ui;

@@ -1,4 +1,4 @@
-#include "config.h"
+﻿#include "config.h"
 
 #include <QSettings>
 #include <string>
@@ -6,6 +6,8 @@
 #include <exception>
 #include <iostream>
 #include <QTextCodec>
+
+
 
 
 GameConfig* GameConfig::_inst = nullptr;
@@ -27,11 +29,16 @@ GameConfig::~GameConfig()
 void GameConfig::load()
 {
     QSettings settings("mh.ini", QSettings::IniFormat);
-    auto_skipgc = settings.value("Option/auto skip gc").toBool();
-    auto_startgame = settings.value("Option/auto start game").toBool();
-    startgame_counts = settings.value("Option/start game counts").toInt();
-    helperaddr = settings.value("Option/helper addr").toString();
-    recent_scripts = settings.value("Option/recent scripts").toStringList();
+    settings.beginGroup("Option");
+    auto_skipgc = settings.value("auto skip gc").toBool();
+    auto_startgame = settings.value("auto start game").toBool();
+    startgame_counts = settings.value("start game counts").toInt();
+    helperaddr = settings.value("helper addr").toString();
+    helperport = settings.value("helper port").toString();
+    recent_scripts = settings.value("recent scripts").toStringList();
+    auto_run = settings.value("auto run").toBool();
+    auto_hide = settings.value("auto hide").toBool();
+    settings.endGroup();
 }
 
 
@@ -44,6 +51,9 @@ void GameConfig::save()
     settings.setValue("start game counts", startgame_counts);
     settings.setValue("helper addr", helperaddr);
     settings.setValue("recent scripts", recent_scripts);
+    settings.setValue("helper port", helperport);
+    settings.setValue("auto run", auto_run);
+    settings.setValue("auto hide", auto_hide);
     settings.endGroup();
 }
 

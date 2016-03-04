@@ -1,6 +1,7 @@
-#ifndef WNDRECT_H
+﻿#ifndef WNDRECT_H
 #define WNDRECT_H
 
+#define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <string>
 #include <stdexcept>

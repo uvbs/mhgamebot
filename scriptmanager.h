@@ -2,7 +2,7 @@
 #define SCRIPTAPP_H
 
 
-#include <windows.h>
+
 #include <vector>
 #include <thread>
 #include <string>
@@ -28,24 +28,37 @@ private:
     std::vector<HWND> game_wnds;
     std::vector<std::thread> game_threads;
     std::map<std::string, std::string> game_accounts;
-    std::function<void(int type, char*)> output_callback;
     std::string script_filename;
-    std::vector<std::function<void(int type, char*)>> _game_callback_list;
 
-
+    //回调
+    std::vector<output_fun> _game_output_callback_list;
+    help_fun _game_helper_callback;
+    output_fun output_callback;
 
 public:
     void mhprintf(LOG_TYPE logtype, const char *msg_format, ...);
-    void set_output_callback(std::function<void(int type, char*)> _callback);
+
     void set_script(std::string filename);
-    void set_gamescript_callback_list(std::vector<std::function<void(int type, char*)>> list);
+    std::string& get_script_name(){
+        return script_filename;
+    }
+
     void delete_all_script();
+
+    //设置脚本管理器的输出回调
+    void set_output_callback(output_fun _callback);
+    void set_gamescript_callback_list(std::vector<output_fun> list);
+
+    //帮助的回调
+    void set_helper_callback(help_fun callback);
+
 
 
 public:
     void stop();  //停止脚本
     void pause(); //暂停脚本
     void run();     //运行脚本
+
     void read_accounts();
     int find_game_window(const std::string& classname);
     std::string find_game_path();

@@ -1,8 +1,7 @@
-#ifndef FUNCTION_H
+﻿#ifndef FUNCTION_H
 #define FUNCTION_H
 
 #include <vector>
-#include <Windows.h>
 #include <set>
 #include <unordered_set>
 #include "define.h"
@@ -35,6 +34,9 @@ struct GameConfig
     bool auto_startgame;    //开始时没有窗口就自动启动新游戏
     bool auto_skipgc;       //自动跳过动画
     QString helperaddr;   //人工帮助地址
+    QString helperport;
+    bool auto_run;          //开机自动运行
+    bool auto_hide;         //启动后自动隐藏
 };
 
 
