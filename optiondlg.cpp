@@ -1,6 +1,7 @@
 ﻿#include "optiondlg.h"
 #include "ui_optiondlg.h"
 #include "config.h"
+#include "helperfun.h"
 
 
 optiondlg::optiondlg(QWidget *parent) :
@@ -31,9 +32,34 @@ void optiondlg::on_buttonBox_accepted()
     GameConfig::instance()->auto_run = ui->checkBox_autorun->isChecked();
     GameConfig::instance()->auto_hide = ui->checkBox_autohide->isChecked();
     GameConfig::instance()->save();
+
+    if(ui->checkBox_autorun->isChecked())
+    {
+        install_autorun();
+    }
+    else{
+        uninstall_autorun();
+    }
 }
 
 void optiondlg::on_checkBox_autostartgame_clicked()
 {
 
+}
+
+void optiondlg::on_checkBox_autorun_stateChanged(int arg1)
+{
+    if(arg1 == Qt::Unchecked)
+    {
+        if(uninstall_autorun()){
+            QMessageBox::information(nullptr, u8"提示", u8"自动启动已清除", QMessageBox::Ok);
+        }
+    }
+    else if(arg1 == Qt::Checked)
+    {
+
+        if(install_autorun()){
+            QMessageBox::information(nullptr, u8"提示", u8"自动启动安装成功", QMessageBox::Ok);
+        }
+    }
 }

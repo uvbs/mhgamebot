@@ -1,7 +1,12 @@
 ﻿#ifndef OPTIONDLG_H
 #define OPTIONDLG_H
 
-#include <QDialog>
+#include <QtCore>
+#include <QtGui>
+#include <QWidget>
+
+#include <QMessageBox>
+
 
 namespace Ui {
 class optiondlg;
@@ -19,6 +24,8 @@ private slots:
     void on_buttonBox_accepted();
 
     void on_checkBox_autostartgame_clicked();
+
+    void on_checkBox_autorun_stateChanged(int arg1);
 
 private:
     Ui::optiondlg *ui;
