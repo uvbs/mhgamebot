@@ -6,9 +6,9 @@
 #include "mhnetwork.h"
 
 
-#include <QMainWindow>
-#include <QListWidget>
-#include <QCloseEvent>
+#include <QtCore>
+#include <QtGui>
+#include <QtWidgets>
 
 
 
@@ -27,6 +27,11 @@ public:
 protected:
     void closeEvent(QCloseEvent *e);
 
+
+signals:
+    void append_msg_to_dbg(const QString& msg);
+
+
 private slots:
     void on_pushButton_start_clicked();
 
@@ -41,16 +46,18 @@ private slots:
     void on_action_dbg_triggered();
 
 private:
-    bool running = false;
+    QLabel *status_text;
     Ui::MainWindow *ui;
-    ScriptManager _script_manager;
+    ScriptManager script_manager;
     QListWidget *script_listview;
     GameConfig _config;
     MHNetwork network;
     QListWidget* create_tab(QString title);
-    void clear_tab();
+
     void update_window_title(QString title);
     void stop_script();
+    void app_text(QListWidget* widget, int type, const char* sz);
+    void create_status_bar();
 };
 
 #endif // MAINWINDOW_H
