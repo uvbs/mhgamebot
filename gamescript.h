@@ -11,13 +11,16 @@
 #include <map>
 #include <opencv2/opencv.hpp>
 #include <mutex>
+#include <condition_variable>
+
+
 
 #include "../control/protocol.h"
 
 #include "define.h"
 #include "config.h"
 
-using help_fun = std::function<void(TCP_DAMA_PARAM*, const char*, int)>;
+using help_fun = std::function<bool(DAMA_PARAM*, const char*, int)>;
 using output_fun = std::function<void(int type, char*)>;
 
 
@@ -29,6 +32,10 @@ public:
     GameScript(HWND game_wnd, int id);
     ~GameScript();
 
+    int get_id(){
+        return script_id;
+    }
+
     void mhprintf(LOG_TYPE logtype, const char *msg_format, ...);
 
     //设置输出信息的回调
@@ -38,13 +45,13 @@ public:
     void set_sendhelp_callback(help_fun callback);
 
     //发送图片到人工服务器
-    void send_pic_to_helper(TCP_DAMA_PARAM *param, const char* data, int len);
-
+    bool send_pic_to_helper(DAMA_PARAM *param, const char* data, int len);
+    void recv_help_answer(int x, int y);
 
     //进去游戏
     void entry_game();
     PLAYER_STATUS get_player_status();
-    void run(std::string script_name);
+    void start(std::string script_name);
 
     bool is_in_city(std::string city);
 
@@ -161,6 +168,19 @@ private:
 
     output_fun output_callback;
     help_fun help_callback;
+    void mhsleep(int ms, bool chk_status = true);
+
+    void set_helper_event(){
+        helper_event = false;
+        //让等待的线程继续执行
+    }
+    bool get_helper_event(){
+        return helper_event;
+    }
+
+    //事件
+private:
+     bool helper_event;
 };
 
 
