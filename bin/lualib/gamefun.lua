@@ -61,14 +61,15 @@ function 移动直到遇到(x, y, npc, 匹配程度)
 	
 end
 
+
 function 走到旁边(npc)
-	local x,y = 获得图片位置(npc)
+	local x,y = 获得图片位置(npc, 6)  --默认7的话偶尔匹配不到
 
 	--调整到旁边
-	if x < 40 then 
-		x = x + 40
+	if x < 45 then 
+		x = x + 45		--40容易挡着目标
 	else
-		x = x - 40
+		x = x - 45
 	end
 
 	点击坐标(x, y)
@@ -106,4 +107,21 @@ function 使用辅助技能(名字)
         调试信息("参数错误 找唱哥")
 	end
 	
+end
+
+
+
+--原本封装的移动到 gamelib 中
+
+function 对话(x, y)
+	ox = 640/2
+	oy = 480/2
+
+	x = x or 0
+	y = y or 0
+
+	ox = ox + x
+	oy = oy + y
+
+	变动点击(ox, oy)	
 end
