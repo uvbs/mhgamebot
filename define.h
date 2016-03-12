@@ -68,7 +68,7 @@ enum PLAYER_STATUS
 #define SCREEN_HEIGHT 480
 
 
-const RECT rect_task = {470, 140, SCREEN_WIDTH, SCREEN_HEIGHT - 100};
+const RECT rect_task = {470, 160, SCREEN_WIDTH, SCREEN_HEIGHT - 100};
 const RECT rect_position = {27, 27, 120, 41};
 const RECT rect_game = {0, 0, SCREEN_WIDTH, SCREEN_HEIGHT};
 
