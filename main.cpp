@@ -5,12 +5,22 @@
 #include <QStyleFactory>
 #include <QStyle>
 #include <QFile>
+#include <mutex>
 
 
 int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);
-    QApplication::setStyle("Fusion");
+
+    QString path;
+    QDir dir;
+    path=dir.currentPath();
+    qDebug() << path;
+
+    QStringList list;
+    list.append(path.append(u8"/plugins"));
+    app.setLibraryPaths(list);
+    qDebug() << path;
 
     QFile file(":/resource/stylecss.css");
     file.open(QFile::ReadOnly);
