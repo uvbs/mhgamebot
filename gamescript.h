@@ -77,7 +77,6 @@ public:
     void click(const char *image, int threshold = 7);
     void click_nofix(int x, int y);
     void click_nofix(const char *image);
-    void click_move(int x, int y, int lbutton);
     void click_nomove(int x, int y);
 
     //发送按键

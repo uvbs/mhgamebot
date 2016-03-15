@@ -1374,43 +1374,35 @@ void GameScript::get_mouse_vec(int x, int y, int x2, int y2, std::vector<int>& r
         throw exception_xy(buf);
     }
 
-
-    if(x < x2)
-    {
-        for(int i = x+1; i < x2; i++)
+    do{
+        if(x < x2)
         {
-            int v = make_mouse_value(i, y);
+            x++;
+            if(y < y2) y++;
+            else if(y > y2) y--;
+
+            int v = make_mouse_value(x, y);
+            r.push_back(v);
+
+        }
+        else if(x > x2)
+        {
+            x--;
+            if(y < y2) y++;
+            else if(y > y2) y--;
+
+            int v = make_mouse_value(x, y);
+            r.push_back(v);
+        }
+        else{
+            if(y < y2) y++;
+            else if(y > y2) y--;
+
+            int v = make_mouse_value(x, y);
             r.push_back(v);
         }
     }
-    else if(x > x2)
-    {
-        for(int i = x-1; i > x2; i--)
-        {
-            int v = make_mouse_value(i, y);
-            r.push_back(v);
-        }
-    }
-
-
-
-    if(y < y2)
-    {
-        for(int i = y+1; i < y2; i++)
-        {
-            int v = make_mouse_value(x2, i);
-            r.push_back(v);
-        }
-    }
-    else if(y > y2)
-    {
-
-        for(int i = y-1; i > y2; i--)
-        {
-            int v = make_mouse_value(x2, i);
-            r.push_back(v);
-        }
-    }
+    while(x != x2 || y != y2);
 }
 
 void GameScript::click_nofix(int x, int y)
@@ -1488,15 +1480,15 @@ void GameScript::slow_click(int x1, int y1, int lbutton)
         ::PostMessage(wnd, WM_MOUSEMOVE, 0, mouse[i]);
         mhsleep(8, false);
 
-        if(i == mouse.size() - 1)
+        if(i == (mouse.size() - 1))
         {
-            ::Sleep(200);  //停稳了...
+            ::Sleep(300);  //停稳了...
             if(lbutton == 1)
                 ::PostMessage(wnd, WM_LBUTTONDOWN, 1,mouse[i]);
             else if(lbutton == 0)
                 ::PostMessage(wnd, WM_RBUTTONDOWN, 1, mouse[i]);
 
-            ::Sleep(40);
+            ::Sleep(30);
             if(lbutton == 1)
                 ::PostMessage(wnd, WM_LBUTTONUP, 0,mouse[i]);
             else if(lbutton == 0)
@@ -1512,23 +1504,6 @@ void GameScript::slow_click(int x1, int y1, int lbutton)
     mhsleep(1000);
 }
 
-//lbutton 控制0点击, 1 右击, 2的不进行点击操作
-void GameScript::click_move(int x, int y, int lbutton)
-{
-
-    if(x > SCREEN_WIDTH || y > SCREEN_HEIGHT)
-        throw std::runtime_error("click_move() 目的坐标异常");
-
-    //转换成游戏内鼠标坐标
-    int mouse_x = static_cast<int>((double)x * ratio_x);
-    int mouse_y = static_cast<int>((double)y * ratio_y);
-
-    //加上那个误差
-    mouse_x -= rx;
-    mouse_y -= ry;
-
-    slow_click(mouse_x, mouse_y, lbutton);
-}
 
 void GameScript::click_nomove(int x, int y)
 {
@@ -1596,8 +1571,9 @@ void GameScript::click(int x, int y, int lbutton)
     POINT now;
     std::vector<int> r;
 
-    //y - 70 还不够, 会被游戏偏移鼠标到窗口外
-    get_mouse_vec(cur_game_x, cur_game_y, x > 550 ? x-70:x, y > 400 ? y - 100: y, r);
+    //y - 70 还不够, 会被游戏偏移鼠标到窗口外, 大致的移动过去
+    get_mouse_vec(cur_game_x, cur_game_y, x > 550 ? x-70:x, y > 400 ? y - 50: y, r);
+
     for(size_t i = 0; i < r.size(); i++)
     {
         ::PostMessage(wnd, WM_MOUSEMOVE, 0, r[i]);
@@ -1619,8 +1595,15 @@ void GameScript::click(int x, int y, int lbutton)
     rx = game_x - cur_game_x;
     ry = game_y - cur_game_y;
 
+    //转换成游戏内鼠标坐标
+    int mouse_x = static_cast<int>((double)x * ratio_x);
+    int mouse_y = static_cast<int>((double)y * ratio_y);
 
-    click_move(x, y, lbutton);
+    //加上那个误差
+    mouse_x -= rx;
+    mouse_y -= ry;
+
+    slow_click(mouse_x, mouse_y, lbutton);
 }
 
 void GameScript::input(const std::string & msg)
