@@ -14,5 +14,7 @@ int GetBytesPerPixel(int depth);
 int GetBytesPerRow(int width, int depth);
 int GetBitmapBytes(int width, int height, int depth);
 
+int make_mouse_value(int x, int y);
+
 #endif // HELPERFUN_H
 

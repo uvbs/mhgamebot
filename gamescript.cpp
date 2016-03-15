@@ -20,6 +20,7 @@ cv::Mat GameScript::mouse1;
 cv::Mat GameScript::mouse2;
 cv::Mat GameScript::mouse3;
 cv::Mat GameScript::mouse4;
+
 std::once_flag GameScript::just_once_read;
 
 //构造函数
@@ -234,18 +235,46 @@ bool GameScript::match_task()
         std::string taskname(name);
         check_pic_exists(taskname);
 
-        if(is_match_pic_in_screen(taskname.c_str())){
-            mhprintf(LOG_INFO, "开始任务->%s", taskname.c_str());
+        if(_match_task(taskname.c_str())){
             call_lua_func(name.c_str());
             finded = true;
             break;
         }
-        else{
-            //mhprintf(LOG_DEBUG, "任务不存在: %s", taskname.c_str());
-        }
     }
 
     return finded;
+}
+
+bool GameScript::_match_task(std::string imgname)
+{
+
+    bool match = false;
+    cv::Mat matchscreen = cv::imdecode(
+                get_screen_data(rect_task),
+                cv::IMREAD_COLOR);
+    cv::Mat matchpic = cv::imread(imgname.c_str(), cv::IMREAD_COLOR);
+
+
+    cv::Mat result_screen;
+    cv::Mat result_pic;
+    //处理成所有白字
+    process_pic_task(matchscreen, result_screen);
+    process_pic_task(matchpic, result_pic);
+
+    cv::Point matchLoc;
+    double maxVal = _match_picture(result_screen, result_pic, matchLoc);
+
+
+    //TODO
+    if(maxVal >= 0.90){
+        mhprintf(LOG_INFO,"任务: %s, \t\t匹配结果 %f", imgname.c_str(), maxVal);
+        match = true;
+    }
+    else{
+        match = false;
+    }
+
+    return match;
 }
 
 //当前玩家的状态
@@ -317,20 +346,24 @@ void GameScript::entry_game()
 //获取玩家状态
 PLAYER_STATUS GameScript::get_player_status()
 {
-    if(is_match_pic_in_screen("战斗中.png")){
+    if(is_match_pic_in_screen("战斗中.png", rect_game, 8)){
+        mhprintf(LOG_INFO, "战斗状态");
         return PLAYER_STATUS::COMBAT;
     }
-    else if(is_match_pic_in_screen("游戏内.png")){
+    else if(is_match_pic_in_screen("游戏内.png", rect_game, 8)){
         return PLAYER_STATUS::NORMAL;
     }
-    else if(is_match_pic_in_screen("体验状态.png")){
+    else if(is_match_pic_in_screen("体验状态.png", rect_game, 8)){
+        mhprintf(LOG_INFO, "体验状态");
         return PLAYER_STATUS::NOTIME;
     }
-    else if(is_match_pic_in_screen("跳过动画.png")){
+    else if(is_match_pic_in_screen("跳过动画.png", rect_game, 8)){
+        mhprintf(LOG_INFO, "跳过动画");
         return PLAYER_STATUS::GC;
     }
     else{
-        throw exception_status("未知的玩家状态");
+        mhprintf(LOG_INFO, "位置状态, 假装成正常状态");
+        return PLAYER_STATUS::NORMAL;
     }
 
 }
@@ -356,18 +389,32 @@ void GameScript::top_wnd()
 //包括红色和白色都处理成白色, 其余颜色处理成黑色
 void GameScript::process_pic_task(cv::Mat &src, cv::Mat& result)
 {
-    inRange(src, cv::Scalar(0, 0, 180), cv::Scalar(179, 255, 255), result);
+    cv::Mat hsv;
+    cv::cvtColor(src, hsv, cv::COLOR_BGR2HSV);
+    inRange(hsv, cv::Scalar(0, 0, 180), cv::Scalar(179, 255, 255), result);
 }
 
 //除红色之外的其他颜色都处理成黑色
 void GameScript::process_pic_task_redline(cv::Mat &src, cv::Mat& result)
 {
-    inRange(src, cv::Scalar(0, 90, 90), cv::Scalar(5, 255, 255), result);
+    //转换到hsv
+    cv::Mat hsv;
+    cv::cvtColor(src, hsv, cv::COLOR_BGR2HSV);
+    inRange(hsv, cv::Scalar(0, 90, 90), cv::Scalar(5, 255, 255), result);
 }
 
 void GameScript::process_pic_mouse(cv::Mat& src, cv::Mat& result)
 {
-    inRange(src, cv::Scalar(0, 180, 150), cv::Scalar(20, 255, 255), result);
+    cv::Mat hsv;
+    cv::cvtColor(src, hsv, cv::COLOR_BGR2HSV);
+    inRange(hsv, cv::Scalar(0, 180, 150), cv::Scalar(20, 255, 255), result);
+}
+
+void GameScript::process_pic_mouse1(cv::Mat& src, cv::Mat& result)
+{
+    cv::Mat hsv;
+    cv::cvtColor(src, hsv, cv::COLOR_BGR2HSV);
+    inRange(hsv, cv::Scalar(5, 0, 0), cv::Scalar(156, 255, 255), result);
 }
 
 //检测图片存在
@@ -388,12 +435,58 @@ void GameScript::check_pic_exists(std::string & imgfile)
     }
 }
 
+bool GameScript::find_palyer_name(POINT& point)
+{
+    bool ret = false;
+    cv::Mat screen = cv::imdecode(screen_data(), cv::IMREAD_COLOR);
+    cv::Mat pic = cv::imread("pic\\玩家名称模糊.png", cv::IMREAD_COLOR);
+    cv::Mat result_screen;
+    cv::Mat result_pic;
+    cv::cvtColor(screen, result_screen, cv::COLOR_BGR2HSV);
+    cv::cvtColor(pic, result_pic, cv::COLOR_BGR2HSV);
+    inRange(result_screen, cv::Scalar(50, 30, 50), cv::Scalar(70, 130, 255), result_screen);
+    inRange(result_pic, cv::Scalar(50, 30, 50), cv::Scalar(70, 130, 255), result_pic);
+
+    cv::Point match_point;
+    double match_value = _match_picture(result_screen, result_pic, match_point);
+    if(match_value > 0.5)
+    {
+        point.x = match_point.x + result_pic.cols / 2;
+        point.y = match_point.y + result_pic.rows / 2;
+        ret = true;
+    }
+
+    return ret;
+}
+
 void GameScript::regist_lua_fun()
 {
     REGLUADATA(lua_status, COMBAT, "战斗状态");
     REGLUADATA(lua_status, NORMAL, "正常状态");
     REGLUADATA(lua_status, GC, "动画状态");
     REGLUADATA(lua_status, UNKNOW, "未知状态");
+
+
+    REGLUAFUN(lua_status, "点击某个玩家", [](lua_State* L)->int{
+        POINT pt;
+        if(script_inst->find_palyer_name(pt)){
+            script_inst->rclick(pt.x, pt.y - 50);
+        }
+
+        return 0;
+    });
+
+    REGLUAFUN(lua_status, "按下鼠标", [](lua_State* L)->int{
+        int m = make_mouse_value(script_inst->get_cur_game_mouse().x, script_inst->get_cur_game_mouse().y);
+        ::PostMessage(script_inst->get_game_wnd(), WM_LBUTTONDOWN, 1, m);
+        return 0;
+    });
+
+    REGLUAFUN(lua_status, "松开鼠标", [](lua_State* L)->int{
+        int m = make_mouse_value(script_inst->get_cur_game_mouse().x, script_inst->get_cur_game_mouse().y);
+        ::PostMessage(script_inst->get_game_wnd(), WM_LBUTTONDOWN, 1, m);
+        return 0;
+    });
 
     REGLUAFUN(lua_status, "发送人工请求", [](lua_State* L)->int{
 
@@ -467,17 +560,17 @@ void GameScript::regist_lua_fun()
     });
 
 
+    //TODO: 这个函数更改过, 可能不再使用之前的脚本
     REGLUAFUN(lua_status, "点击", [](lua_State* L)->int{
         assert(lua_gettop(L) == 2);
         int x = lua_tointeger(L, 1);
         int y = lua_tointeger(L, 2);
 
         //实验测试这样移动会完成给予的点击操作
-        script_inst->slow_click(x, y, x, y+3, 1);
-        //script_inst->slow_click(x, y+20, x, y, 1);
+        script_inst->slow_click(script_inst->get_cur_game_mouse().x + x,
+                                script_inst->get_cur_game_mouse().y + y,
+                                1);
 
-        //移开, 避免挡住
-        script_inst->click_move(100, 100, 1);
         return 0;
     });
 
@@ -491,7 +584,7 @@ void GameScript::regist_lua_fun()
     REGLUAFUN(lua_status, "移动鼠标到", [](lua_State* L)->int{
         assert(lua_gettop(L) <= 2);
 
-        POINT pt;
+
         //判断lua函数
         if(LUA_TNUMBER == lua_type(L, 1)){
             int x = lua_tointeger(L, 1);
@@ -499,8 +592,6 @@ void GameScript::regist_lua_fun()
 
             //只移动
             script_inst->click(x, y, 3);
-            pt.x = x;
-            pt.y = y;
         }
         else
         {
@@ -513,6 +604,7 @@ void GameScript::regist_lua_fun()
             if(lua_gettop(L) == 2)
                 thershold = lua_tointeger(L, 2);
 
+            POINT pt;
             if(false == script_inst->is_match_pic_in_screen(name.c_str(), pt, rect_game, thershold)){
                 std::string err("图片没有匹配到");
                 err += name;
@@ -520,12 +612,11 @@ void GameScript::regist_lua_fun()
             }
 
             script_inst->click(pt.x, pt.y, 3);   //只移动
-
         }
 
 
-        lua_pushinteger(L, pt.x);
-        lua_pushinteger(L, pt.y);
+        lua_pushinteger(L, script_inst->get_cur_game_mouse().x);
+        lua_pushinteger(L, script_inst->get_cur_game_mouse().y);
         return 2;
     });
 
@@ -541,36 +632,8 @@ void GameScript::regist_lua_fun()
         std::string img = lua_tostring(L, 1);
         script_inst->check_pic_exists(img);
 
-        ;
-        cv::Mat matchscreen = cv::imdecode(
-                    script_inst->get_screen_data(rect_task),
-                    cv::IMREAD_COLOR);
-        cv::Mat matchpic = cv::imread(img.c_str(), cv::IMREAD_COLOR);
-
-        //转换到hsv
-        cv::Mat hsv_screen;
-        cv::Mat hsv_pic;
-        cv::cvtColor(matchscreen, hsv_screen, cv::COLOR_BGR2HSV);
-        cv::cvtColor(matchpic, hsv_pic, cv::COLOR_BGR2HSV);
-
-        cv::Mat result_screen;
-        cv::Mat result_pic;
-        //处理成所有白字
-        script_inst->process_pic_task(hsv_screen, result_screen);
-        script_inst->process_pic_task(hsv_pic, result_pic);
-
-        cv::Point matchLoc;
-        double maxVal = script_inst->_match_picture(result_screen, result_pic, matchLoc);
-
-
-        //TODO
-        if(maxVal >= 0.95){
-            script_inst->mhprintf(LOG_INFO,"任务: %s, \t\t匹配结果 %f", img.c_str(), maxVal);
-            lua_pushboolean(L, 1);
-        }
-        else
-            lua_pushboolean(L, 0);
-
+        bool match = script_inst->_match_task(img);
+        lua_pushboolean(L, match);
         return 1;
     });
 
@@ -616,6 +679,24 @@ void GameScript::regist_lua_fun()
         script_inst->click(imgname.c_str());
         return 0;
     });
+
+    REGLUAFUN(lua_status, "战斗_存在图片", [](lua_State* L)->int{
+        std::string imgname = lua_tostring(L, 1);
+        script_inst->check_pic_exists(imgname);
+        bool bexist;
+
+        if(lua_gettop(L) == 2){
+            int threshold = lua_tointeger(L, 2);
+            bexist = script_inst->is_match_pic_in_screen(imgname.c_str(), rect_left_wnd, threshold);
+        }
+        else{
+            bexist = script_inst->is_match_pic_in_screen(imgname.c_str(), rect_left_wnd);
+        }
+
+        lua_pushboolean(L, bexist);
+        return 1;
+    });
+
 
     REGLUAFUN(lua_status, "存在图片", [](lua_State* L)->int{
         std::string imgname = lua_tostring(L, 1);
@@ -682,18 +763,18 @@ void GameScript::regist_lua_fun()
         if(arg_count == 1)
         {
             int line = lua_tointeger(L, 1);
-            default_rect.top += line * 14;      //一行14个像素
+            default_rect.top += line * 21;      //一行14个像素
         }
 
         //先检测三个长度的下划线
-        if(script_inst->find_color("可点击下划线1", pt, default_rect)){
+        if(script_inst->find_red_line("可点击下划线1", pt, default_rect)){
             script_inst->click(pt.x, pt.y);
         }
-        else if(script_inst->find_color("可点击下划线", pt, default_rect)){
+        else if(script_inst->find_red_line("可点击下划线", pt, default_rect)){
             script_inst->click(pt.x, pt.y);
         }
         else{
-            throw std::runtime_error("可点击下划线没有匹配到, 这是任务没写, 而默认的任务处理又找不到可点击下划线");
+            throw std::runtime_error("可点击下划线没有匹配到");
         }
 
         return 0;
@@ -936,7 +1017,6 @@ void GameScript::start(std::string script_name)
 
         //单独特殊处理
         process_pic_mouse(mouse3_temp, mouse3);
-
         mhprintf(LOG_INFO, "读取指针图像完成");
     }, 0);
 
@@ -983,15 +1063,6 @@ void GameScript::start(std::string script_name)
     mhprintf(LOG_INFO, "脚本停止");
 }
 
-int GameScript::make_mouse_value(int x, int y)
-{
-    int v = 0;
-    v = x;
-    y = y << 16;
-    v = v + y;
-
-    return v;
-}
 
 void GameScript::input_password(const char* input)
 {
@@ -1147,27 +1218,28 @@ double GameScript::match_picture(const std::vector<uchar>& img1, const cv::Mat& 
     return _match_picture(matscreen, pic, matchLoc);
 }
 
+POINT GameScript::get_cur_game_mouse()
+{
+    return {cur_game_x, cur_game_y};
+}
+
+
 
 //任务区域
-bool GameScript::find_color(std::string image, POINT &point, RECT rect)
+bool GameScript::find_red_line(std::string image, POINT &point, RECT rect)
 {
     check_pic_exists(image);
 
     cv::Mat matchscreen = cv::imdecode(get_screen_data(rect), cv::IMREAD_COLOR);
     cv::Mat matchpic = cv::imread(image.c_str(), cv::IMREAD_COLOR);
 
-    //转换到hsv
-    cv::Mat hsv_screen;
-    cv::Mat hsv_pic;
-    cv::cvtColor(matchscreen, hsv_screen, cv::COLOR_BGR2HSV);
-    cv::cvtColor(matchpic, hsv_pic, cv::COLOR_BGR2HSV);
 
     cv::Mat result_screen;
     cv::Mat result_pic;
 
     //红色以外过滤掉
-    process_pic_task_redline(hsv_screen, result_screen);
-    process_pic_task_redline(hsv_pic, result_pic);
+    process_pic_task_redline(matchscreen, result_screen);
+    process_pic_task_redline(matchpic, result_pic);
 
 
     cv::Point matchLoc;
@@ -1379,9 +1451,15 @@ letstart:
         maxLoc.x -= 30;
     }
 
+
+    //单独处理alt+g的图标
     if(val < 0.90)
     {
-        //val = match_picture(screen_data(), mouse3, maxLoc);
+
+        cv::Mat ori = cv::imdecode(screen_data(), cv::IMREAD_COLOR);
+        cv::Mat processed_screen;
+        process_pic_mouse(ori, processed_screen);
+        val = _match_picture(processed_screen, mouse3, maxLoc);
     }
 
 
@@ -1401,10 +1479,10 @@ letstart:
     return {maxLoc.x, maxLoc.y};
 }
 
-void GameScript::slow_click(int x, int y, int x1, int y1, int lbutton)
+void GameScript::slow_click(int x1, int y1, int lbutton)
 {
     std::vector<int> mouse;
-    get_mouse_vec(x, y, x1, y1, mouse);
+    get_mouse_vec(cur_game_x, cur_game_y, x1, y1, mouse);
     for(size_t i = 0; i < mouse.size(); i++)
     {
         ::PostMessage(wnd, WM_MOUSEMOVE, 0, mouse[i]);
@@ -1412,12 +1490,13 @@ void GameScript::slow_click(int x, int y, int x1, int y1, int lbutton)
 
         if(i == mouse.size() - 1)
         {
-            mhsleep(250);  //停稳了...
+            ::Sleep(200);  //停稳了...
             if(lbutton == 1)
                 ::PostMessage(wnd, WM_LBUTTONDOWN, 1,mouse[i]);
             else if(lbutton == 0)
                 ::PostMessage(wnd, WM_RBUTTONDOWN, 1, mouse[i]);
 
+            ::Sleep(40);
             if(lbutton == 1)
                 ::PostMessage(wnd, WM_LBUTTONUP, 0,mouse[i]);
             else if(lbutton == 0)
@@ -1427,7 +1506,10 @@ void GameScript::slow_click(int x, int y, int x1, int y1, int lbutton)
         }
     }
 
-    mhsleep(500);
+    cur_game_x = x1;
+    cur_game_y = y1;
+
+    mhsleep(1000);
 }
 
 //lbutton 控制0点击, 1 右击, 2的不进行点击操作
@@ -1445,7 +1527,7 @@ void GameScript::click_move(int x, int y, int lbutton)
     mouse_x -= rx;
     mouse_y -= ry;
 
-    slow_click(cur_game_x, cur_game_y, mouse_x, mouse_y, lbutton);
+    slow_click(mouse_x, mouse_y, lbutton);
 }
 
 void GameScript::click_nomove(int x, int y)
@@ -1463,6 +1545,9 @@ void GameScript::key_press(std::string key)
     top_wnd();
     if(key == "TAB"){
         key_press(VK_TAB);
+    }
+    else if(key == "F8"){
+        key_press(VK_F8);
     }
     else if(key == "F9"){
         key_press(VK_F9);
@@ -1508,24 +1593,18 @@ void GameScript::key_press(int vk)
 void GameScript::click(int x, int y, int lbutton)
 {
 
-
     POINT now;
-    POINT now_game;
-
-    //获得当前鼠标位置
-    now = get_cur_mouse();
-    now_game = now;
     std::vector<int> r;
 
     //y - 70 还不够, 会被游戏偏移鼠标到窗口外
-    get_mouse_vec(now.x, now.y, x > 550 ? x-70:x, y > 400 ? y - 100: y, r);
+    get_mouse_vec(cur_game_x, cur_game_y, x > 550 ? x-70:x, y > 400 ? y - 100: y, r);
     for(size_t i = 0; i < r.size(); i++)
     {
         ::PostMessage(wnd, WM_MOUSEMOVE, 0, r[i]);
         mhsleep(2, false);
 
-        now_game.x = LOWORD(r[i]);
-        now_game.y = HIWORD(r[i]);
+        cur_game_x = LOWORD(r[i]);
+        cur_game_y = HIWORD(r[i]);
     }
 
     //就一下
@@ -1537,10 +1616,9 @@ void GameScript::click(int x, int y, int lbutton)
     int game_y = static_cast<int>((double)now.y * ratio_y);
 
     //取得误差
-    rx = game_x - now_game.x;
-    ry = game_y - now_game.y;
-    cur_game_x = now_game.x;
-    cur_game_y = now_game.y;
+    rx = game_x - cur_game_x;
+    ry = game_y - cur_game_y;
+
 
     click_move(x, y, lbutton);
 }

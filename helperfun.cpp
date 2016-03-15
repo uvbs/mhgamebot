@@ -67,3 +67,14 @@ int GetBitmapBytes(int width, int height, int depth)
 {
     return height * GetBytesPerRow(width, depth);
 }
+
+int make_mouse_value(int x, int y)
+{
+    int v = 0;
+    v = x;
+    y = y << 16;
+    v = v + y;
+
+    return v;
+}
+

@@ -102,6 +102,7 @@ public:
     double match_picture(const std::vector<uchar>& img1, const cv::Mat& pic, cv::Point &matchLoc);
 
 
+    POINT get_cur_game_mouse();
     POINT get_cur_mouse();
     void rand_move_mouse();
     void until_stop_run(int counts = 1000);
@@ -119,12 +120,11 @@ public:
 
 
     void read_global(bool read);
-    void slow_click(int x, int y, int x1, int y1, int lbutton);
+    void slow_click(int x1, int y1, int lbutton);
 
     bool is_task_running();
 private:
     void get_mouse_vec(int x, int y, int x2, int y2, std::vector<int>& r);
-    int make_mouse_value(int x, int y);
 
 
     //获得焦点的互斥
@@ -161,13 +161,17 @@ private:
 
     //从脚本读取的可用任务列表中匹配任务, 匹配到返回true, 没有返回false
     bool match_task();
+    bool _match_task(std::string imgname);
 
     void process_pic_task(cv::Mat &src, cv::Mat& result);
     void process_pic_task_redline(cv::Mat& src, cv::Mat& result);
     void process_pic_mouse(cv::Mat& src, cv::Mat& result);
+    void process_pic_mouse1(cv::Mat& src, cv::Mat& result);
+
 
     void check_pic_exists(std::string &imgfile);
-    bool find_color(std::string image, POINT &point, RECT rect);
+    bool find_palyer_name(POINT& point);        //查找玩家姓名
+    bool find_red_line(std::string image, POINT &point, RECT rect);
     const std::vector<uchar> &screen_data();
 
     output_fun output_callback;
