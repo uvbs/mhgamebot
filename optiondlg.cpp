@@ -49,17 +49,5 @@ void optiondlg::on_checkBox_autostartgame_clicked()
 
 void optiondlg::on_checkBox_autorun_stateChanged(int arg1)
 {
-    if(arg1 == Qt::Unchecked)
-    {
-        if(uninstall_autorun()){
-            QMessageBox::information(nullptr, u8"提示", u8"自动启动已清除", QMessageBox::Ok);
-        }
-    }
-    else if(arg1 == Qt::Checked)
-    {
 
-        if(install_autorun()){
-            QMessageBox::information(nullptr, u8"提示", u8"自动启动安装成功", QMessageBox::Ok);
-        }
-    }
 }
