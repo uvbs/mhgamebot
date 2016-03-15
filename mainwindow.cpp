@@ -247,6 +247,12 @@ void MainWindow::app_text(QListWidget* widget, int type, const char* sz)
     QString message = QString::fromLocal8Bit(sz);
     QListWidgetItem* item = new QListWidgetItem(message);
 
+    if(widget->count() > 100)
+    {
+        QListWidgetItem* first_item = widget->takeItem(0);
+        if(first_item) delete first_item;
+    }
+
     if(type == LOG_WARNING){
         item->setTextColor(Qt::black);
         item->setBackgroundColor(Qt::yellow);
@@ -260,7 +266,9 @@ void MainWindow::app_text(QListWidget* widget, int type, const char* sz)
     else if(type == LOG_INFO){
         item->setTextColor(Qt::blue);
     }
+
     widget->addItem(item);
+
 }
 
 void MainWindow::create_status_bar()
