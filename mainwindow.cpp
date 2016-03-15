@@ -1,6 +1,5 @@
 ﻿#include "mainwindow.h"
 #include "ui_mainwindow.h"
-#include "selecttask.h"
 
 
 
@@ -23,11 +22,6 @@ MainWindow::MainWindow(QWidget *parent) :
     //设置图标
     setWindowIcon(QIcon(":/resource/icon.png"));
 
-    //
-    if(_config.get_last_script().isEmpty() == false){
-        update_window_title(_config.get_last_script());
-        script_manager.set_script(_config.get_last_script().toLocal8Bit().toStdString());
-    }
 
     //创建脚本tab
     script_listview = create_tab(u8"信息");
@@ -78,7 +72,7 @@ MainWindow::MainWindow(QWidget *parent) :
     });
 
     //启动客户端网络
-    std::thread* _network_thread = new std::thread([this](){
+    _network_thread = new std::thread([this](){
         network.start();
     });
 
@@ -91,6 +85,13 @@ MainWindow::MainWindow(QWidget *parent) :
 
     ui->stackedWidget->setCurrentIndex(0);
     ui->action_dbg->setChecked(false);
+
+
+    //
+    if(_config.get_last_script().isEmpty() == false){
+        update_window_title(_config.get_last_script());
+        script_manager.set_script(_config.get_last_script().toLocal8Bit().toStdString());
+    }
 
 }
 
@@ -106,42 +107,52 @@ MainWindow::~MainWindow()
 //运行脚本
 void MainWindow::on_pushButton_start_clicked()
 {
-
-    for(int i = 0; i < ui->tabWidget->count(); i++){
-        ui->tabWidget->removeTab(1);
+    if(script_manager.get_script_status() == true)
+    {
+        script_manager.stop();
+        ui->pushButton_start->setText(u8"开始");
     }
+    else
+    {
+        for(int i = 0; i < ui->tabWidget->count(); i++){
+            ui->tabWidget->removeTab(1);
+        }
 
-    script_manager.stop();
+        //script_manager.stop();
 
 
-    //启动脚本
-    std::vector<GameScript*> scripts = script_manager.start();
-    for(int i = 0; i < scripts.size(); i++){
+        //设置好回调
+        std::vector<GameScript*> scripts = script_manager.create_all_script();
+        for(int i = 0; i < scripts.size(); i++)
+        {
+            //创建tab窗口
+            QListWidget* widget = create_tab(QString(u8"窗口%1").arg(i));
+            scripts[i]->set_output_callback([this, widget](int type, char* sz){
+                app_text(widget, type, sz);
+            });
 
-        //创建tab窗口
-        QListWidget* widget = create_tab(QString(u8"窗口%1").arg(i));
-        scripts[i]->set_output_callback([this, widget](int type, char* sz){
-            app_text(widget, type, sz);
-        });
+            //TODO:
+            scripts[i]->set_sendhelp_callback([this](DAMA_PARAM* param, const char* data, int len)->bool{
+                emit append_msg_to_dbg(u8"新的人工请求发出");
+                emit append_msg_to_dbg(QString::number(param->height));
+                emit append_msg_to_dbg(QString::number(param->width));
+                emit append_msg_to_dbg(QString::number(param->x));
+                emit append_msg_to_dbg(QString::number(param->y));
+                emit append_msg_to_dbg(u8"done");
 
-        //TODO:
-        scripts[i]->set_sendhelp_callback([this](DAMA_PARAM* param, const char* data, int len)->bool{
-            emit append_msg_to_dbg(u8"新的人工请求发出");
-            emit append_msg_to_dbg(QString::number(param->height));
-            emit append_msg_to_dbg(QString::number(param->width));
-            emit append_msg_to_dbg(QString::number(param->x));
-            emit append_msg_to_dbg(QString::number(param->y));
-            emit append_msg_to_dbg(u8"done");
+                int buflen = sizeof(DAMA_PARAM) + len;
+                char* buf = new char[buflen];
+                memcpy(buf, param, sizeof(DAMA_PARAM));
+                memcpy(buf + sizeof(DAMA_PARAM), data, len);
+                network.send(CMD_ID::dama, buf, buflen);
+                delete buf;
 
-            int buflen = sizeof(DAMA_PARAM) + len;
-            char* buf = new char[buflen];
-            memcpy(buf, param, sizeof(DAMA_PARAM));
-            memcpy(buf + sizeof(DAMA_PARAM), data, len);
-            network.send(CMD_ID::dama, buf, buflen);
-            delete buf;
+                return true;
+            });
+        }
 
-            return true;
-        });
+        //启动所有脚本
+        script_manager.start();
     }
 }
 
@@ -152,9 +163,9 @@ void MainWindow::update_window_title(QString title)
 
 void MainWindow::on_pushButton_loadscript_clicked()
 {
-    QString fileName = QFileDialog::getOpenFileName(this, tr("读取脚本"),
+    QString fileName = QFileDialog::getOpenFileName(this, u8"读取脚本",
                                                      "",
-                                                     tr("脚本 (*.lua)"));
+                                                     u8"脚本 (*.lua)");
     if(fileName.isEmpty() == false){
         //保存最近列表
         _config.add(fileName);
@@ -195,20 +206,11 @@ void MainWindow::on_pushButton_option_clicked()
     dlg.exec();
 }
 
-void MainWindow::stop_script()
+void MainWindow::closeEvent(QCloseEvent *e)
 {
     ui->statusbar->showMessage(u8"等待脚本线程关闭..", 2000);
 
-    std::thread exit_script_thread([this](){
-        script_manager.stop();
-    });
-
-    exit_script_thread.detach();
-}
-
-void MainWindow::closeEvent(QCloseEvent *e)
-{
-    stop_script();
+    script_manager.stop();
     network.stop();
 
 
@@ -244,14 +246,19 @@ void MainWindow::app_text(QListWidget* widget, int type, const char* sz)
 {
     QString message = QString::fromLocal8Bit(sz);
     QListWidgetItem* item = new QListWidgetItem(message);
-    if(type == LOG_DEBUG){
-        item->setTextColor(Qt::blue);
-    }
-    else if(type == LOG_WARNING){
-        item->setTextColor(Qt::red);
+
+    if(type == LOG_WARNING){
+        item->setTextColor(Qt::black);
+        item->setBackgroundColor(Qt::yellow);
     }
     else if(type == LOG_NORMAL){
         item->setTextColor(Qt::black);
+    }
+    else if(type == LOG_ERROR){
+        item->setTextColor(Qt::red);
+    }
+    else if(type == LOG_INFO){
+        item->setTextColor(Qt::blue);
     }
     widget->addItem(item);
 }

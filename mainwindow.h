@@ -53,9 +53,8 @@ private:
     GameConfig _config;
     MHNetwork network;
     QListWidget* create_tab(QString title);
-
+    std::thread* _network_thread;
     void update_window_title(QString title);
-    void stop_script();
     void app_text(QListWidget* widget, int type, const char* sz);
     void create_status_bar();
 };
