@@ -59,13 +59,14 @@ bool ScriptManager::launcher_game(int new_counts)
 
 void ScriptManager::mhprintf(LOG_TYPE logtype, const char *msg_format, ...)
 {
+	assert(output_callback != nullptr);
+	
     va_list va_args;
     va_start(va_args, msg_format);
     //_mhprintf("脚本", msg_format, va_args, logtype);
     char buf[256];
     vsprintf(buf, msg_format, va_args);
-    if(output_callback != nullptr)
-        output_callback(logtype, buf);
+	output_callback(logtype, buf);
     va_end(va_args);
 }
 
@@ -76,7 +77,7 @@ void ScriptManager::set_output_callback(std::function<void(int type, char*)> _ca
 
 void ScriptManager::set_script(std::string filename)
 {
-    mhprintf(LOG_DEBUG, "选定脚本: %s", filename.c_str());
+    mhprintf(LOG_INFO, "选定脚本: %s", filename.c_str());
     script_filename = filename;
 }
 
@@ -94,24 +95,23 @@ GameScript*ScriptManager::get_script(int id)
 
 void ScriptManager::stop()
 {
-    for(auto script: game_scripts){
-        script->end_task();
+    for(auto pscript: game_scripts){
+        pscript->end_task();
+    } 
+
+    //等待线程退出
+    for(auto pthread: game_threads){
+        pthread->join();
+        delete pthread;
     }
 
-    try{
-    //等待线程全部退出
-    for(size_t i = 0; i < game_threads.size(); i++){
-        game_threads[i].join();
-    }
-    }
-    catch(std::system_error &e){
-        mhprintf(LOG_WARNING, e.what());
+
+    //清除所有脚本
+    for(auto pscript: game_scripts){
+        delete pscript;
     }
 
-    for(auto script: game_scripts){
-        delete script;
-    }
-
+    
     game_scripts.clear();
     game_threads.clear();
 }
@@ -123,7 +123,7 @@ void ScriptManager::pause()
     }
 }
 
-int ScriptManager::hide_chat_window()
+void ScriptManager::hide_chat_window()
 {
     HWND wnd = FindWindowExA(NULL, NULL, MHCHATWNDCLASS, NULL);
     if(wnd != NULL){
@@ -135,8 +135,6 @@ int ScriptManager::hide_chat_window()
         }
 
     }
-
-    return 0;
 }
 
 int ScriptManager::get_game_window(const std::string& classname)
@@ -225,23 +223,33 @@ void ScriptManager::list_window()
 }
 
 
-std::vector<GameScript*>& ScriptManager::start()
+std::vector<GameScript*>& ScriptManager::create_all_script()
+{
+    get_game_window(GAME_WND_CLASS);
+
+    //遍历这台电脑上所有游戏窗口
+    for(size_t i = 0; i < game_wnds.size(); i++)
+    {
+        GameScript* script = new GameScript(game_wnds[i], i);
+        game_scripts.push_back(script);
+    }
+
+    return game_scripts;
+}
+
+void ScriptManager::start()
 {
     if(script_filename.empty()){
         mhprintf(LOG_WARNING, "先设置要加载的脚本");
-        return game_scripts;
+        return;
     }
 
-
-    mhprintf(LOG_NORMAL,"运行脚本");
-
+    mhprintf(LOG_NORMAL, "开始执行脚本");
 
     //读取账户
     read_accounts();
-    mhprintf(LOG_NORMAL,"读取到游戏账号: %d个", game_accounts.size());
+    mhprintf(LOG_NORMAL, "读取到游戏账号: %d个", game_accounts.size());
 
-    get_game_window(GAME_WND_CLASS);
-    mhprintf(LOG_WARNING,"检测到%d个游戏窗口", game_wnds.size());
 
     hide_chat_window();
     mhprintf(LOG_INFO, "隐藏游戏聊天窗口");
@@ -249,20 +257,20 @@ std::vector<GameScript*>& ScriptManager::start()
     //mhprintf(LOG_NORMAL,"排序窗口");
     //list_window();
     
-    //遍历这台电脑上所有游戏窗口
-    for(size_t i = 0; i < game_wnds.size(); i++)
-    {
-        GameScript* script = new GameScript(game_wnds[i], i);
 
-        //为每个窗口分配一个线程单独操作
-        game_threads.push_back(std::thread([=](){
-            script->start(script_filename);
-        }));
+    if(game_scripts.size() == 0){
+        mhprintf(LOG_INFO, "没有找到游戏窗口");
+        mhprintf(LOG_INFO, "脚本退出");
+    }
+    else{
+        for(auto script: game_scripts){
+            game_threads.push_back(new std::thread([=](){
+                script->start(script_filename);
+            }));
 
-        game_scripts.push_back(script);
+        }
     }
 
-    return game_scripts;
 }
 
 void ScriptManager::read_accounts()
