@@ -60,7 +60,7 @@ public:
 
     void set_player_name(std::string name);
     void call_lua_func(std::string func);
-    void do_script(std::string filename);
+    bool do_script(std::string filename);
     void end_task();
 
 
@@ -99,11 +99,12 @@ public:
     double match_picture(const std::vector<uchar>& img1, std::string img2, cv::Point &matchLoc);
     double _match_picture(const cv::Mat& screen, const cv::Mat& pic, cv::Point &matchLoc);
     double match_picture(const std::vector<uchar>& img1, const std::vector<uchar>& img2, cv::Point &matchLoc);
+    double match_picture(const std::vector<uchar>& img1, const cv::Mat& pic, cv::Point &matchLoc);
 
 
     POINT get_cur_mouse();
     void rand_move_mouse();
-    void until_stop_run(int counts = 500);
+    void until_stop_run(int counts = 1000);
     void top_wnd();
 
     void input_password(const char *input);
@@ -129,6 +130,7 @@ private:
     //获得焦点的互斥
     static std::mutex topwnd_mutex;
     std::string _script_name;
+
 
 private:
     BYTE *screen_buf;
@@ -160,10 +162,12 @@ private:
     //从脚本读取的可用任务列表中匹配任务, 匹配到返回true, 没有返回false
     bool match_task();
 
-    void process_pic(cv::Mat &src, cv::Mat &result);
-    void process_pic_red(cv::Mat &src);
+    void process_pic_task(cv::Mat &src, cv::Mat& result);
+    void process_pic_task_redline(cv::Mat& src, cv::Mat& result);
+    void process_pic_mouse(cv::Mat& src, cv::Mat& result);
+
     void check_pic_exists(std::string &imgfile);
-    bool find_color(std::string image, POINT &point);
+    bool find_color(std::string image, POINT &point, RECT rect);
     const std::vector<uchar> &screen_data();
 
     output_fun output_callback;
@@ -177,6 +181,12 @@ private:
     bool get_helper_event(){
         return helper_event;
     }
+
+    static cv::Mat mouse1;
+    static cv::Mat mouse2;
+    static cv::Mat mouse3;
+    static cv::Mat mouse4;
+    static std::once_flag just_once_read;
 
     //事件
 private:
