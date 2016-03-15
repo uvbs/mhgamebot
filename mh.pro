@@ -32,7 +32,6 @@ SOURCES += main.cpp \
     gamescript.cpp \
     config.cpp \
     mainwindow.cpp \
-    selecttask.cpp \
     helperfun.cpp \
     scriptmanager.cpp \
     optiondlg.cpp \
@@ -45,7 +44,6 @@ HEADERS += \
     define.h \
     gamescript.h \
     mainwindow.h \
-    selecttask.h \
     helperfun.h \
     scriptmanager.h \
     optiondlg.h \
