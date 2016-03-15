@@ -104,7 +104,6 @@ enum STD_COLOR {
 
 enum LOG_TYPE{
     LOG_WARNING,  //警告
-    LOG_DEBUG,  //调试
     LOG_NORMAL, //正常
     LOG_ERROR,  //错误
     LOG_INFO     //信息
