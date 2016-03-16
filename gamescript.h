@@ -121,7 +121,6 @@ public:
     void read_global(bool read);
     void slow_click(int x1, int y1, int lbutton);
 
-    bool is_task_running();
 private:
     void get_mouse_vec(int x, int y, int x2, int y2, std::vector<int>& r);
 
@@ -169,7 +168,6 @@ private:
 
 
     void check_pic_exists(std::string &imgfile);
-    bool find_palyer_name(POINT& point);        //查找玩家姓名
     bool find_red_line(std::string image, POINT &point, RECT rect);
     const std::vector<uchar> &screen_data();
 
