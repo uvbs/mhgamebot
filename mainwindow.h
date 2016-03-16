@@ -45,6 +45,8 @@ private slots:
 
     void on_action_dbg_triggered();
 
+    void on_pushButton_stop_clicked();
+
 private:
     QLabel *status_text;
     Ui::MainWindow *ui;

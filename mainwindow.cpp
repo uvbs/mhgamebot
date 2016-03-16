@@ -87,7 +87,7 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->action_dbg->setChecked(false);
 
 
-    //
+    //自动设置上次使用脚本
     if(_config.get_last_script().isEmpty() == false){
         update_window_title(_config.get_last_script());
         script_manager.set_script(_config.get_last_script().toLocal8Bit().toStdString());
@@ -107,53 +107,49 @@ MainWindow::~MainWindow()
 //运行脚本
 void MainWindow::on_pushButton_start_clicked()
 {
-    if(script_manager.get_script_status() == true)
-    {
-        script_manager.stop();
-        ui->pushButton_start->setText(u8"开始");
+
+    for(int i = 0; i < ui->tabWidget->count(); i++){
+        ui->tabWidget->removeTab(1);
     }
-    else
+
+
+    //设置好回调
+    std::vector<GameScript*> scripts = script_manager.create_all_script();
+    for(int i = 0; i < scripts.size(); i++)
     {
-        for(int i = 0; i < ui->tabWidget->count(); i++){
-            ui->tabWidget->removeTab(1);
-        }
+        //创建tab窗口
+        QListWidget* widget = create_tab(QString(u8"窗口%1").arg(i));
+        scripts[i]->set_output_callback([this, widget](int type, char* sz){
+            app_text(widget, type, sz);
+        });
 
-        //script_manager.stop();
+        //TODO:
+        scripts[i]->set_sendhelp_callback([this](DAMA_PARAM* param, const char* data, int len)->bool{
+            emit append_msg_to_dbg(u8"新的人工请求发出");
+            emit append_msg_to_dbg(QString::number(param->height));
+            emit append_msg_to_dbg(QString::number(param->width));
+            emit append_msg_to_dbg(QString::number(param->x));
+            emit append_msg_to_dbg(QString::number(param->y));
+            emit append_msg_to_dbg(u8"done");
 
+            int buflen = sizeof(DAMA_PARAM) + len;
+            char* buf = new char[buflen];
+            memcpy(buf, param, sizeof(DAMA_PARAM));
+            memcpy(buf + sizeof(DAMA_PARAM), data, len);
+            network.send(CMD_ID::dama, buf, buflen);
+            delete buf;
 
-        //设置好回调
-        std::vector<GameScript*> scripts = script_manager.create_all_script();
-        for(int i = 0; i < scripts.size(); i++)
-        {
-            //创建tab窗口
-            QListWidget* widget = create_tab(QString(u8"窗口%1").arg(i));
-            scripts[i]->set_output_callback([this, widget](int type, char* sz){
-                app_text(widget, type, sz);
-            });
-
-            //TODO:
-            scripts[i]->set_sendhelp_callback([this](DAMA_PARAM* param, const char* data, int len)->bool{
-                emit append_msg_to_dbg(u8"新的人工请求发出");
-                emit append_msg_to_dbg(QString::number(param->height));
-                emit append_msg_to_dbg(QString::number(param->width));
-                emit append_msg_to_dbg(QString::number(param->x));
-                emit append_msg_to_dbg(QString::number(param->y));
-                emit append_msg_to_dbg(u8"done");
-
-                int buflen = sizeof(DAMA_PARAM) + len;
-                char* buf = new char[buflen];
-                memcpy(buf, param, sizeof(DAMA_PARAM));
-                memcpy(buf + sizeof(DAMA_PARAM), data, len);
-                network.send(CMD_ID::dama, buf, buflen);
-                delete buf;
-
-                return true;
-            });
-        }
-
-        //启动所有脚本
-        script_manager.start();
+            return true;
+        });
     }
+
+    //启动所有脚本
+    script_manager.start();
+
+    ui->pushButton_start->setEnabled(false);
+    ui->pushButton_stop->setEnabled(true);
+    ui->pushButton_loadscript->setEnabled(false);
+
 }
 
 void MainWindow::update_window_title(QString title)
@@ -275,4 +271,12 @@ void MainWindow::create_status_bar()
 {
     status_text = new QLabel(u8"未连接服务器");
     ui->statusbar->addPermanentWidget(status_text);
+}
+
+void MainWindow::on_pushButton_stop_clicked()
+{
+    script_manager.stop();
+    ui->pushButton_start->setEnabled(true);
+    ui->pushButton_loadscript->setEnabled(true);
+    ui->pushButton_stop->setEnabled(false);
 }
