@@ -38,11 +38,8 @@ public:
     void mhprintf(LOG_TYPE logtype, const char *msg_format, ...);
 
     void set_script(std::string filename);
-    std::string& get_script_name(){
-        return script_filename;
-    }
 
-    GameScript* get_script(int id);
+
     std::vector<GameScript*>& create_all_script();
     //设置脚本管理器的输出回调
     void set_output_callback(output_fun _callback);
@@ -54,7 +51,6 @@ public:
 
 public:
     void stop();  //停止脚本
-    void pause(); //暂停脚本
     void start();     //运行脚本
 
     void read_accounts();

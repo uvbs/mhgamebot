@@ -81,18 +81,6 @@ void ScriptManager::set_script(std::string filename)
     script_filename = filename;
 }
 
-GameScript*ScriptManager::get_script(int id)
-{
-    for(auto script: game_scripts){
-        if(script->get_id() == id)
-            return script;
-    }
-
-    assert(false);
-    return nullptr;
-}
-
-
 void ScriptManager::stop()
 {
     for(auto pscript: game_scripts){
@@ -114,14 +102,10 @@ void ScriptManager::stop()
     
     game_scripts.clear();
     game_threads.clear();
+
+    mhprintf(LOG_INFO, "已停止");
 }
 
-void ScriptManager::pause()
-{
-    for(auto script: game_scripts){
-        script->end_task();
-    }
-}
 
 void ScriptManager::hide_chat_window()
 {
@@ -267,8 +251,9 @@ void ScriptManager::start()
             game_threads.push_back(new std::thread([=](){
                 script->start(script_filename);
             }));
-
         }
+
+        mhprintf(LOG_INFO, "运行中..");
     }
 
 }
