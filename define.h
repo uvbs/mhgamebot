@@ -15,7 +15,7 @@
 
 
 //默认匹配程度
-#define DEFAULT_THERSHOLD 7
+#define DEFAULT_THERSHOLD 7.0
 
 
 //方便注册自己的函数
@@ -68,7 +68,7 @@ enum PLAYER_STATUS
 #define SCREEN_HEIGHT 480
 
 
-const RECT rect_task = {470, 155, SCREEN_WIDTH, SCREEN_HEIGHT - 150};
+const RECT rect_task = {470, 155, SCREEN_WIDTH, SCREEN_HEIGHT/2+50};
 const RECT rect_position = {27, 27, 120, 41};
 const RECT rect_game = {0, 0, SCREEN_WIDTH, SCREEN_HEIGHT};
 const RECT rect_left_wnd = {0, 0, SCREEN_WIDTH / 2, SCREEN_HEIGHT};
