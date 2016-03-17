@@ -60,7 +60,7 @@ public:
 
     void set_player_name(std::string name);
     void call_lua_func(std::string func);
-    bool do_script(std::string filename);
+    void do_script(std::string filename);
     void end_task();
 
 
@@ -82,9 +82,6 @@ public:
     //发送按键
     void key_press(int vk);
     void key_press(std::string key);
-
-    //npc对话中的点击( 会设置焦点 )
-    void dialog_click(const char *img);
 
 
     //输入字符 WM_CHAR
@@ -125,10 +122,8 @@ private:
     void get_mouse_vec(int x, int y, int x2, int y2, std::vector<int>& r);
 
 
-    //获得焦点的互斥
-    static std::mutex topwnd_mutex;
     std::string _script_name;
-
+    PLAYER_STATUS last_player_status;
 
 private:
     BYTE *screen_buf;

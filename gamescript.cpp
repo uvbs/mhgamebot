@@ -3,6 +3,7 @@
 #include <thread>
 #include <chrono>
 #include <boost/lexical_cast.hpp>
+#include <QFile>
 #include "helperfun.h"
 
 
@@ -15,7 +16,7 @@
 
 //静态初始化
 std::map<lua_State*, GameScript*> GameScript::inst_map;
-std::mutex GameScript::topwnd_mutex;
+
 cv::Mat GameScript::mouse1;
 cv::Mat GameScript::mouse2;
 cv::Mat GameScript::mouse3;
@@ -55,6 +56,7 @@ GameScript::GameScript(HWND game_wnd, int id):
     ry = 0;
     cur_game_x = 0;
     cur_game_y = 0;
+
 }
 
 GameScript::~GameScript()
@@ -192,21 +194,17 @@ void GameScript::read_global(bool read)
 
 }
 
-bool GameScript::do_script(std::string filename)
+void GameScript::do_script(std::string filename)
 {
     mhprintf(LOG_NORMAL, "加载脚本: %s", filename.c_str());
-    bool result = true;
 
     //加载任务脚本
     if(0 != luaL_dofile(lua_status, filename.c_str()))
     {
         const char * err = lua_tostring(lua_status, -1);
-        mhprintf(LOG_NORMAL,err);
         lua_pop(lua_status, 1);
-        result = false;
+        throw std::runtime_error(err);
     }
-
-    return result;
 }
 
 //关掉一些东西
@@ -347,7 +345,6 @@ void GameScript::entry_game()
 PLAYER_STATUS GameScript::get_player_status()
 {
     if(is_match_pic_in_screen("战斗中.png", rect_game, 8)){
-        mhprintf(LOG_INFO, "战斗状态");
         return PLAYER_STATUS::COMBAT;
     }
     else if(is_match_pic_in_screen("游戏内.png", rect_game, 8)){
@@ -372,7 +369,6 @@ PLAYER_STATUS GameScript::get_player_status()
 //结束任务
 void GameScript::end_task()
 {
-    mhprintf(LOG_INFO,  "等待停止脚本..");
     task_running = false;
 }
 
@@ -442,6 +438,11 @@ void GameScript::regist_lua_fun()
 
 
 
+    REGLUAFUN(lua_status, "获得焦点", [](lua_State* L)->int{
+        script_inst->top_wnd();
+        return 0;
+    });
+
 
     REGLUAFUN(lua_status, "发送人工请求", [](lua_State* L)->int{
 
@@ -509,8 +510,19 @@ void GameScript::regist_lua_fun()
     });
 
     REGLUAFUN(lua_status, "调试信息", [](lua_State* L)->int{
-        std::string info = lua_tostring(L, 1);
-        script_inst->mhprintf(LOG_INFO, info.c_str());
+        int arg_counts = lua_gettop(L);
+        std::string info;
+        LOG_TYPE logtype = LOG_NORMAL;
+
+        if(arg_counts == 1){
+            info = lua_tostring(L, 1);
+        }
+        else if(arg_counts == 2){
+            info = lua_tostring(L, 1);
+            logtype = (LOG_TYPE)lua_tointeger(L, 2);
+        }
+
+        script_inst->mhprintf(logtype, info.c_str());
         return 0;
     });
 
@@ -538,40 +550,54 @@ void GameScript::regist_lua_fun()
     });
 
     REGLUAFUN(lua_status, "移动鼠标到", [](lua_State* L)->int{
-        assert(lua_gettop(L) <= 2);
 
+        int arg_counts = lua_gettop(L);
+        POINT pt;
 
-        //判断lua函数
-        if(LUA_TNUMBER == lua_type(L, 1)){
-            int x = lua_tointeger(L, 1);
-            int y = lua_tointeger(L, 2);
+        if(arg_counts == 2){
+            //判断lua函数
+            if(LUA_TNUMBER == lua_type(L, 1)){
+                pt.x = lua_tointeger(L, 1);
+                pt.y = lua_tointeger(L, 2);
+            }
+            else
+            {
 
-            //只移动
-            script_inst->mhprintf(LOG_INFO, "移动鼠标到%d, %d", x, y);
-            script_inst->click(x, y, 3);
+                std::string name = lua_tostring(L, 1);
+                int thershold = lua_tointeger(L, 2);
+
+                if(false == script_inst->is_match_pic_in_screen(name.c_str(), pt, rect_game, thershold)){
+                    std::string err("图片没有匹配到");
+                    err += name;
+                    throw std::runtime_error(err.c_str());
+                }
+            }
         }
-        else
-        {
-
+        else if(arg_counts == 1){
             std::string name = lua_tostring(L, 1);
-            script_inst->check_pic_exists(name);
+            if(false == script_inst->is_match_pic_in_screen(name.c_str(), pt)){
+                std::string err("图片没有匹配到");
+                err += name;
+                throw std::runtime_error(err.c_str());
+            }
+        }
+        else if(arg_counts == 3){
+            std::string name = lua_tostring(L, 1);
+            int offset_x = lua_tointeger(L, 2);
+            int offset_y = lua_tointeger(L, 3);
 
-
-            int thershold = DEFAULT_THERSHOLD;
-            if(lua_gettop(L) == 2)
-                thershold = lua_tointeger(L, 2);
-
-            POINT pt;
-            if(false == script_inst->is_match_pic_in_screen(name.c_str(), pt, rect_game, thershold)){
+            if(false == script_inst->is_match_pic_in_screen(name.c_str(), pt)){
                 std::string err("图片没有匹配到");
                 err += name;
                 throw std::runtime_error(err.c_str());
             }
 
-            script_inst->mhprintf(LOG_INFO, "移动鼠标到%s", name.c_str());
-            script_inst->click(pt.x, pt.y, 3);   //只移动
+            pt.x += offset_x;
+            pt.y += offset_y;
         }
 
+        script_inst->mhprintf(LOG_INFO, "移动鼠标到%d, %d", pt.x, pt.y);
+        script_inst->click(pt.x, pt.y, 3);
 
         lua_pushinteger(L, script_inst->get_cur_game_mouse().x);
         lua_pushinteger(L, script_inst->get_cur_game_mouse().y);
@@ -652,9 +678,11 @@ void GameScript::regist_lua_fun()
             imgname = lua_tostring(L, 1);
         }
         else if(arg_counts == 2){
+            imgname = lua_tostring(L, 1);
             threshold = lua_tointeger(L, 2);
         }
         else if(arg_counts == 3){
+            imgname = lua_tostring(L, 1);
             threshold = lua_tointeger(L, 2);
             int m = lua_tointeger(L, 3);
             if(m == 1){
@@ -694,18 +722,7 @@ void GameScript::regist_lua_fun()
         return 0;
     });
 
-    REGLUAFUN(lua_status, "点击对话框内图片", [](lua_State* L)->int{
-        std::lock_guard<std::mutex> locker(GameScript::topwnd_mutex);
-//        if(::GetFocus() != script_inst->get_game_wnd()){
-//            throw std::runtime_error("获得了焦点互斥, 但游戏并没有获得焦点, 不要手动操作任何地方");
-//        }
 
-        std::string imgname = lua_tostring(L, 1);
-        imgname.insert(0, "对话框\\");
-
-        script_inst->dialog_click(imgname.c_str());
-        return 0;
-    });
 
     REGLUAFUN(lua_status, "点击任务", [](lua_State* L)->int{
         POINT pt;
@@ -746,7 +763,6 @@ void GameScript::regist_lua_fun()
 
         std::string pic;
         int thershold = DEFAULT_THERSHOLD;
-
         auto a1 = script_inst->get_screen_data();
 
 
@@ -788,24 +804,24 @@ void GameScript::regist_lua_fun()
             throw std::runtime_error("参数数量错误");
         }
 
-        int times = 6;
-        while(times--){
+        int times = 5;
+        while(times){
 
-            script_inst->mhsleep(300);
             auto a2 = script_inst->get_screen_data();
             cv::Point pt;
             double result = script_inst->match_picture(a1, a2, pt);
-            script_inst->mhprintf(LOG_INFO, "变动点击结果: %f", result);
-            if(result < ((double)DEFAULT_THERSHOLD/10)){
-                //变动了
-                break;
-            }
+            script_inst->mhprintf(LOG_INFO, "变动点击: %f", result);
 
-            if(times == 1) throw std::runtime_error("变动点击尝试5次依然失败");
+            //变动了
+            if(result < (DEFAULT_THERSHOLD/10))
+                break;
+
+            script_inst->mhsleep(200);
+            times--;
         }
 
-
-        script_inst->mhprintf(LOG_INFO, "变动点击退出");
+        if(times == 0) throw std::runtime_error("变动点击尝试5次依然失败");
+        script_inst->mhprintf(LOG_INFO, "变动点击结束");
         return 0;
     });
 
@@ -856,24 +872,24 @@ void GameScript::regist_lua_fun()
 
     REGLUAFUN(lua_status, "装备物品", [](lua_State* L)->int{
         //首先打开背包
-        POINT zinv;
+        POINT flag_rect;
 
         for(int i = 0; i < 3; i++)
         {
-            if(script_inst->is_match_pic_in_screen("子女按钮", zinv) == false)
+            if(script_inst->is_match_pic_in_screen("现金按钮", flag_rect) == false)
             {
                 script_inst->key_press("ALT+E");
 
-                int times = 6;
-                while(times--){ //等待出现
-                    if(script_inst->is_match_pic_in_screen("子女按钮", zinv)) break;
-                    script_inst->mhprintf(LOG_INFO, "等待装备界面出现..");
-                    script_inst->mhsleep(500);
+                int times = 5;
+                while(times){ //等待出现
+                    if(script_inst->is_match_pic_in_screen("现金按钮", flag_rect)) break;
+                    script_inst->mhprintf(LOG_NORMAL, "等待装备界面出现..");
+                    script_inst->mhsleep(300);
 
-
-                    if(times == 1) throw std::runtime_error("等待装备界面出现失败, 重新遍历任务");
+                    times--;
                 }
 
+                if(times == 0) throw std::runtime_error("等待装备界面出现失败, 重新遍历任务");
                 break;
             }
             else{
@@ -881,11 +897,9 @@ void GameScript::regist_lua_fun()
             }
         }
 
-
-        script_inst->mhsleep(500);
         RECT bag_rect;
-        bag_rect.left = zinv.x + 15;
-        bag_rect.top = zinv.y + 15;
+        bag_rect.left = flag_rect.x - 30;
+        bag_rect.top = 0;
         bag_rect.bottom = SCREEN_HEIGHT;
         bag_rect.right = SCREEN_WIDTH;
 
@@ -960,59 +974,69 @@ void GameScript::regist_lua_fun()
 //单独脚本线程入口
 void GameScript::start(std::string script_name)
 {
-    task_running = true;
-    mhprintf(LOG_NORMAL, "线程ID:%d, 脚本执行", std::this_thread::get_id());
 
-    //初始化几个鼠标
-    std::call_once(just_once_read, [this](int id){
-        mouse1 = cv::imread("pic\\chk\\mouse1.png");
-        mouse2 = cv::imread("pic\\chk\\mouse2.png");
-        cv::Mat mouse3_temp = cv::imread("pic\\chk\\mouse3.png");
-        mouse4 = cv::imread("pic\\chk\\mouse4.png");
-
-        //单独特殊处理
-        process_pic_mouse(mouse3_temp, mouse3);
-        mhprintf(LOG_INFO, "读取指针图像完成");
-    }, 0);
+    try
+    {
+        task_running = true;
+        mhprintf(LOG_NORMAL, "线程ID:%d, 脚本执行", std::this_thread::get_id());
 
 
-    regist_lua_fun();
-    if(!do_script("lualib\\gamefun.lua"))
-        return;
+        //初始化几个鼠标
+        std::call_once(just_once_read, [this](int id){
+            mouse1 = cv::imread("pic\\chk\\mouse1.png");
+            mouse2 = cv::imread("pic\\chk\\mouse2.png");
+            cv::Mat mouse3_temp = cv::imread("pic\\chk\\mouse3.png");
+            mouse4 = cv::imread("pic\\chk\\mouse4.png");
+
+            //单独特殊处理
+            process_pic_mouse(mouse3_temp, mouse3);
+            mhprintf(LOG_INFO, "读取指针图像完成");
+        }, 0);
 
 
-    //mhprintf(LOG_NORMAL,"进入游戏..");
-    //entry_game();
-    //mhprintf(LOG_NORMAL,"进去游戏..完成");
+        last_player_status = get_player_status();
 
-    read_global(true);
-    if(!do_script(script_name))
-        return;
-    read_global(false);
 
-    mhprintf(LOG_INFO, "脚本能处理任务数量%d个", lua_task_list.size());
+        regist_lua_fun();
+        do_script("lualib\\gamefun.lua");
 
-    //这是个阻塞调用, 异常返回, 或者正常结束返回
-    while(task_running){
-        try{
-            call_lua_func("脚本入口");
+
+        //mhprintf(LOG_NORMAL,"进入游戏..");
+        //entry_game();
+        //mhprintf(LOG_NORMAL,"进去游戏..完成");
+
+        read_global(true);
+        do_script(script_name);
+        read_global(false);
+
+        mhprintf(LOG_INFO, "脚本能处理任务数量%d个", lua_task_list.size());
+
+        //这是个阻塞调用, 异常返回, 或者正常结束返回
+        while(task_running){
+            try{
+                call_lua_func("脚本入口");
+            }
+            catch(exception_status &e){
+                mhprintf(LOG_WARNING, "%s", e.what());
+            }
+            catch(exception_xy &e){
+                mhprintf(LOG_WARNING, "%s", e.what());
+            }
+            catch(std::runtime_error &e){
+                mhprintf(LOG_ERROR, "%s", e.what());
+            }
+            catch(std::logic_error &e){
+                mhprintf(LOG_ERROR, "%s", e.what());
+            }
         }
-        catch(exception_status &e){
-            mhprintf(LOG_WARNING, "%s", e.what());
-        }
-        catch(exception_xy &e){
-            mhprintf(LOG_WARNING, "%s", e.what());
-        }
-        catch(std::runtime_error &e){
-            mhprintf(LOG_ERROR, "%s", e.what());
-        }
-        catch(std::logic_error &e){
-            mhprintf(LOG_ERROR, "%s", e.what());
-        }
-        catch(...){
-            mhprintf(LOG_ERROR, "脚本未知异常");
-            end_task();
-        }
+    }
+    catch(std::runtime_error& e)
+    {
+        mhprintf(LOG_INFO, e.what());
+    }
+    catch(...)
+    {
+        mhprintf(LOG_ERROR, "未知的异常");
     }
 
     mhprintf(LOG_INFO, "脚本停止");
@@ -1084,8 +1108,6 @@ void GameScript::rclick(const char* image)
 
 void GameScript::click(const char* image, int threshold)
 {
-    mhprintf(LOG_INFO, "点击图片 %s", image);
-
     POINT point;
     if(is_match_pic_in_screen(image, point, rect_game, threshold)){
         click(point.x, point.y);
@@ -1136,13 +1158,20 @@ double GameScript::_match_picture(const cv::Mat& screen, const cv::Mat& pic, cv:
 
     //匹配方式
     int match_method = cv::TM_CCOEFF_NORMED;
-    cv::matchTemplate(screen, pic, result, match_method);
-    cv::minMaxLoc( result, &minVal, &maxVal, &minLoc, &maxLoc, cv::Mat() );
-    if( match_method  == CV_TM_SQDIFF || match_method == CV_TM_SQDIFF_NORMED ){
-        matchLoc = minLoc;
+
+    if(pic.rows > screen.rows || pic.cols > screen.cols){
+        maxVal = 0.0;
     }
     else{
-        matchLoc = maxLoc;
+
+        cv::matchTemplate(screen, pic, result, match_method);
+        cv::minMaxLoc( result, &minVal, &maxVal, &minLoc, &maxLoc, cv::Mat() );
+        if( match_method  == CV_TM_SQDIFF || match_method == CV_TM_SQDIFF_NORMED ){
+            matchLoc = minLoc;
+        }
+        else{
+            matchLoc = maxLoc;
+        }
     }
 
     //      cv::imshow("image_window", screen);
@@ -1235,45 +1264,6 @@ bool GameScript::is_match_pic_in_screen(std::string image, POINT &point, RECT re
     else
     {
         return false;
-    }
-}
-
-//对话框点击
-void GameScript::dialog_click(const char* img)
-{
-    top_wnd();
-
-    bool yes = false;
-    //检测存在
-    //TODO 有点问题
-    for(int i = 0; i < 5; i++)
-    {
-        mhsleep(500);
-        POINT pt;
-
-        //如果图片不存在, 点击对话框
-        if(is_match_pic_in_screen(img, pt))
-        {
-            click(img);
-            yes = true;
-            break;
-        }
-        else
-        {
-            //
-            //点击对话框, 直到遇到匹配的图片
-            if(is_match_pic_in_screen("pic\\关闭.png", pt)){
-                //TODO 游戏测试对话框关闭了, 依然点击
-                click(pt.x - 100 - i * 5, pt.y + 100 + i * 5);
-            }
-        }
-    }
-
-    if(yes == false)
-    {
-        char buf[200];
-        sprintf(buf, "确保图片存在 %s", img);
-        throw std::runtime_error(buf);
     }
 }
 
@@ -1425,28 +1415,25 @@ void GameScript::slow_click(int x1, int y1, int lbutton)
 {
     std::vector<int> mouse;
     get_mouse_vec(cur_game_x, cur_game_y, x1, y1, mouse);
-    for(size_t i = 0; i < mouse.size(); i++)
-    {
+    for(size_t i = 0; i < mouse.size(); i++){
         ::PostMessage(wnd, WM_MOUSEMOVE, 0, mouse[i]);
         mhsleep(8, false);
-
-        if(i == (mouse.size() - 1))
-        {
-            mhsleep(300);  //停稳了...
-            if(lbutton == 1)
-                ::PostMessage(wnd, WM_LBUTTONDOWN, 1,mouse[i]);
-            else if(lbutton == 0)
-                ::PostMessage(wnd, WM_RBUTTONDOWN, 1, mouse[i]);
-
-            mhsleep(30);
-            if(lbutton == 1)
-                ::PostMessage(wnd, WM_LBUTTONUP, 0,mouse[i]);
-            else if(lbutton == 0)
-                ::PostMessage(wnd, WM_RBUTTONUP, 0, mouse[i]);
-
-            break;
-        }
     }
+
+
+    mhsleep(300);  //停稳了...
+    int last = *mouse.end();
+    if(lbutton == 1)
+        ::PostMessage(wnd, WM_LBUTTONDOWN, 1, last);
+    else if(lbutton == 0)
+        ::PostMessage(wnd, WM_RBUTTONDOWN, 1, last);
+
+    //这个操作不要用mhsleep了, 不然造成只按下没能松开的问题
+    mhsleep(50 + rand()%50, false);
+    if(lbutton == 1)
+        ::PostMessage(wnd, WM_LBUTTONUP, 0, last);
+    else if(lbutton == 0)
+        ::PostMessage(wnd, WM_RBUTTONUP, 0, last);
 
     cur_game_x = x1;
     cur_game_y = y1;
@@ -1501,11 +1488,6 @@ void GameScript::key_press(std::string key)
 
 void GameScript::key_press(int vk)
 {
-    std::lock_guard<std::mutex> locker(GameScript::topwnd_mutex);
-//    if(::GetFocus() != wnd){
-//        throw std::runtime_error("获得了焦点互斥, 但游戏并没有获得焦点, 不要手动操作任何地方");
-//    }
-
     top_wnd();
     keybd_event(vk, 0, 0, 0);
     keybd_event(vk, 0, KEYEVENTF_KEYUP, 0);
@@ -1517,7 +1499,6 @@ void GameScript::key_press(int vk)
 //转化成游戏内坐标, 之后用WM_MOUSEMOVE移动
 void GameScript::click(int x, int y, int lbutton)
 {
-
     POINT now;
     std::vector<int> r;
 
@@ -1674,7 +1655,6 @@ void GameScript::mhsleep(int ms, bool chk_status)
 {
     if(chk_status){
         //检测游戏状态改变
-        static PLAYER_STATUS last_player_status = get_player_status();
         PLAYER_STATUS now_player_status = get_player_status();
         if(now_player_status != last_player_status)
         {
@@ -1685,7 +1665,7 @@ void GameScript::mhsleep(int ms, bool chk_status)
         }
 
         if(task_running == false){
-            throw std::runtime_error("脚本关闭, 停止等待");
+            throw std::runtime_error("停止等待");
         }
     }
 
