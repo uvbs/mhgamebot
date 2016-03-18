@@ -21,7 +21,7 @@
 #include "config.h"
 
 using help_fun = std::function<bool(DAMA_PARAM*, const char*, int)>;
-using output_fun = std::function<void(int type, char*)>;
+using output_fun = std::function<void(int type, const char*)>;
 
 
 //表示一个控制窗口的脚本
@@ -48,8 +48,7 @@ public:
     bool send_pic_to_helper(DAMA_PARAM *param, const char* data, int len);
     void recv_help_answer(int x, int y);
 
-    //进去游戏
-    void entry_game();
+
     PLAYER_STATUS get_player_status();
     void start(std::string script_name);
 
