@@ -11,7 +11,8 @@
 #define GAME_NAME "mhmain.exe"
 #define GAME_WND_CLASS "WSGAME"
 #define MHCHATWNDCLASS    "XYWZ_CHAT"
-
+#define WAIT_TIMES  70		//等待次数, 对待新服卡的问题
+#define WAIT_NORMAL 300			//平常等待的时辰
 
 
 //默认匹配程度
