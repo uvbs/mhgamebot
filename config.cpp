@@ -6,7 +6,7 @@
 #include <exception>
 #include <iostream>
 #include <QTextCodec>
-
+#include <QDebug>
 
 
 
@@ -14,10 +14,6 @@ GameConfig* GameConfig::_inst = nullptr;
 
 GameConfig::GameConfig()
 {
-    startgame_counts = 1;
-    auto_skipgc = true;
-    auto_startgame = true;
-
     _inst = this;
 }
 
@@ -30,14 +26,14 @@ void GameConfig::load()
 {
     QSettings settings("mh.ini", QSettings::IniFormat);
     settings.beginGroup("Option");
-    auto_skipgc = settings.value("auto skip gc").toBool();
-    auto_startgame = settings.value("auto start game").toBool();
-    startgame_counts = settings.value("start game counts").toInt();
-    helperaddr = settings.value("helper addr").toString();
-    helperport = settings.value("helper port").toString();
+    auto_skipgc = settings.value("auto skip gc", true).toBool();
+    auto_startgame = settings.value("auto start game", false).toBool();
+    startgame_counts = settings.value("start game counts", 1).toInt();
+    helperaddr = settings.value("helper addr", "127.0.0.1").toString();
+    helperport = settings.value("helper port", "5678").toString();
     recent_scripts = settings.value("recent scripts").toStringList();
-    auto_run = settings.value("auto run").toBool();
-    auto_hide = settings.value("auto hide").toBool();
+    auto_run = settings.value("auto run", true).toBool();
+    auto_hide = settings.value("auto hide", true).toBool();
     settings.endGroup();
 }
 
@@ -72,5 +68,5 @@ QString GameConfig::get_last_script()
     if(size == 0)
         return "";
 
-    return recent_scripts.at(size - 1);
+    return recent_scripts.at(recent_scripts.size() -1);
 }

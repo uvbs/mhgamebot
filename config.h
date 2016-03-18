@@ -17,7 +17,8 @@ struct GameConfig
     ~GameConfig();
 
     static GameConfig* instance(){
-        assert(_inst != nullptr);
+        if(_inst == nullptr)
+            throw std::runtime_error("GameConfig inst nullptr");
         return _inst;
     }
 
