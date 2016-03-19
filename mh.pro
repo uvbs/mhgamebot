@@ -16,17 +16,17 @@ LIBS += shlwapi.lib
 LIBS += advapi32.lib
 
 INCLUDEPATH += D:/mylibrary/lua-5.3.2/src
-INCLUDEPATH += D:/mylibrary/boost_1_59_0
+INCLUDEPATH += D:/mylibrary/boost_1_60_0
 INCLUDEPATH += D:/mylibrary/opencv/build/include
 
-LIBS += -LD:/mylibrary/boost_1_59_0/lib64-msvc-14.0
-LIBS += libboost_filesystem-vc140-mt-1_59.lib
-LIBS += libboost_system-vc140-mt-1_59.lib
-LIBS += libboost_date_time-vc140-mt-1_59.lib
-LIBS += libboost_regex-vc140-mt-1_59.lib
+LIBS += -LD:/mylibrary/boost_1_60_0/lib64-msvc-12.0
+LIBS += libboost_filesystem-vc120-mt-1_60.lib
+LIBS += libboost_system-vc120-mt-1_60.lib
+LIBS += libboost_date_time-vc120-mt-1_60.lib
+LIBS += libboost_regex-vc120-mt-1_60.lib
 
 LIBS += D:/mylibrary/lua-5.3.2/src/build-Release/release/lualib.lib
-LIBS += D:/mylibrary/opencv/build/x64/vc14/lib/opencv_world310.lib
+LIBS += D:/mylibrary/opencv/build/x64/vc12/lib/opencv_world310.lib
 
 SOURCES += main.cpp \
     gamescript.cpp \
