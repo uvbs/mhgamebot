@@ -73,7 +73,7 @@ public:
     void rclick(int x, int y);
     void rclick(const char *image);
     void click(int x, int y, int lbutton = 1);
-    void click(const char *image, int threshold = 7);
+    void click(const char *image, double threshold = DEFAULT_THERSHOLD);
     void click_nofix(int x, int y);
     void click_nofix(const char *image);
     void click_nomove(int x, int y);
@@ -87,8 +87,8 @@ public:
     void input(const std::string & msg);
 
     //从屏幕匹配
-    bool is_match_pic_in_screen(std::string image, RECT rect = rect_game, int threshold = DEFAULT_THERSHOLD);
-    bool is_match_pic_in_screen(std::string image, POINT &point, RECT rect = rect_game, int threshold = DEFAULT_THERSHOLD);   //参数2: 返回匹配到的POINT结构
+    bool is_match_pic_in_screen(std::string image, const RECT& rect = rect_game, double threshold = DEFAULT_THERSHOLD);
+    bool is_match_pic_in_screen(std::string image, POINT &point, const RECT& rect = rect_game, double threshold = DEFAULT_THERSHOLD);   //参数2: 返回匹配到的POINT结构
 
     //匹配
     double match_picture(const std::vector<uchar>& img1, std::string img2, cv::Point &matchLoc);
@@ -115,7 +115,7 @@ public:
 
 
     void read_global(bool read);
-    void slow_click(int x1, int y1, int lbutton);
+    void slow_click(int x1, int y1, int lbutton = 1);
 
 private:
     void get_mouse_vec(int x, int y, int x2, int y2, std::vector<int>& r);
@@ -183,9 +183,15 @@ private:
     static cv::Mat mouse4;
     static std::once_flag just_once_read;
 
+    //这个映射来优化速度, 避免大量的读图片造成的IO
+    //方式就是把所有图片缓存到内存中
+    //TODO:
+    static std::map<std::string, cv::Mat> _pic_data;
+
+
     //事件
 private:
-     bool helper_event;
+    bool helper_event;
 };
 
 

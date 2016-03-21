@@ -11,12 +11,12 @@
 #define GAME_NAME "mhmain.exe"
 #define GAME_WND_CLASS "WSGAME"
 #define MHCHATWNDCLASS    "XYWZ_CHAT"
-#define WAIT_TIMES  70		//等待次数, 对待新服卡的问题
+#define WAIT_TIMES  50		//等待次数, 对待新服卡的问题
 #define WAIT_NORMAL 300			//平常等待的时辰
-
+#define WAIT_POSTMSG 100
 
 //默认匹配程度
-#define DEFAULT_THERSHOLD 7.0
+#define DEFAULT_THERSHOLD 0.7
 
 
 //方便注册自己的函数
@@ -73,6 +73,7 @@ const RECT rect_task = {470, 155, SCREEN_WIDTH, SCREEN_HEIGHT/2+50};
 const RECT rect_position = {27, 27, 120, 41};
 const RECT rect_game = {0, 0, SCREEN_WIDTH, SCREEN_HEIGHT};
 const RECT rect_left_wnd = {0, 0, SCREEN_WIDTH / 2, SCREEN_HEIGHT};
+const RECT rect_health = {570, 0 , SCREEN_WIDTH, 14};  //玩家血条和宠物血条的区域
 
 //游戏按钮
 const POINT point_player = {548, 27};
