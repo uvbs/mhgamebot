@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>631</width>
+    <width>546</width>
     <height>385</height>
    </rect>
   </property>
@@ -119,17 +119,9 @@
          </layout>
         </item>
         <item>
-         <widget class="QTabWidget" name="tabWidget">
-          <property name="font">
-           <font>
-            <pointsize>9</pointsize>
-           </font>
-          </property>
-          <property name="currentIndex">
-           <number>-1</number>
-          </property>
-          <property name="tabBarAutoHide">
-           <bool>false</bool>
+         <widget class="QTextEdit" name="textEdit">
+          <property name="readOnly">
+           <bool>true</bool>
           </property>
          </widget>
         </item>
@@ -163,7 +155,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>631</width>
+     <width>546</width>
      <height>20</height>
     </rect>
    </property>
@@ -173,6 +165,7 @@
     </property>
     <addaction name="action_QT"/>
     <addaction name="action_dbg"/>
+    <addaction name="action_close_all_game"/>
    </widget>
    <addaction name="menu"/>
   </widget>
@@ -196,6 +189,11 @@
    </property>
    <property name="text">
     <string>调试</string>
+   </property>
+  </action>
+  <action name="action_close_all_game">
+   <property name="text">
+    <string>强关所有游戏</string>
    </property>
   </action>
  </widget>

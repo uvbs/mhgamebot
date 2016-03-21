@@ -49,6 +49,8 @@ private slots:
 
     void on_pushButton_stop_clicked();
 
+    void on_action_close_all_game_triggered();
+
 private:
     QLabel *status_text;
     Ui::MainWindow *ui;

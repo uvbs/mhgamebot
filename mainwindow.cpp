@@ -150,9 +150,9 @@ void MainWindow::update_window_title(const QString& title)
 
 void MainWindow::on_pushButton_loadscript_clicked()
 {
-    QString fileName = QFileDialog::getOpenFileName(this, "读取脚本",
+    QString fileName = QFileDialog::getOpenFileName(this, QString::fromLocal8Bit("读取脚本"),
                                                      "",
-                                                     "脚本 (*.lua)");
+                                                     QString::fromLocal8Bit("脚本 (*.lua)"));
     if(fileName.isEmpty() == false){
         //保存最近列表
         _config.add(fileName);
@@ -175,13 +175,23 @@ void MainWindow::on_pushButton_option_clicked()
 
 void MainWindow::closeEvent(QCloseEvent *e)
 {
-    ui->statusbar->showMessage(QString::fromLocal8Bit("等待脚本线程关闭.."), 2000);
+    if(QMessageBox::information(this, QString::fromLocal8Bit("退出"),
+                                QString::fromLocal8Bit("你确定要退出吗?"),
+                                QMessageBox::Yes | QMessageBox::No) == QMessageBox::Yes)
+    {
+        ui->statusbar->showMessage(QString::fromLocal8Bit("等待脚本线程关闭.."), 2000);
 
-    script_manager.stop();
-    network.stop();
+        script_manager.stop();
+        network.stop();
 
 
-    e->accept();
+        e->accept();
+    }
+    else
+    {
+        e->ignore();
+    }
+
 }
 
 void MainWindow::on_action_QT_triggered()
@@ -225,3 +235,8 @@ void MainWindow::on_pushButton_stop_clicked()
 }
 
 
+
+void MainWindow::on_action_close_all_game_triggered()
+{
+    script_manager.close_all_game();
+}
