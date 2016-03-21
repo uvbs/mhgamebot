@@ -42,7 +42,7 @@ bool ScriptManager::launcher_game(int new_counts)
         sprintf(buf, "%s", gamepath.c_str());
         BOOL bok = ::CreateProcessA(NULL, buf, nullptr, nullptr, FALSE, 0, nullptr, workdir, &ls, &li);
         if(bok == FALSE){
-            mhprintf(LOG_NORMAL,"一个窗口启动失败, 原因:%d", ::GetLastError());
+            mhprintf(LOG_NORMAL, "一个窗口启动失败, 原因:%d", ::GetLastError());
         }
     }
     
@@ -64,18 +64,22 @@ void ScriptManager::mhprintf(LOG_TYPE logtype, const char *msg_format, ...)
     va_list va_args;
     va_start(va_args, msg_format);
     //_mhprintf("脚本", msg_format, va_args, logtype);
+
     char buf[256];
     vsprintf(buf, msg_format, va_args);
-	output_callback(logtype, buf);
+    std::string msgbuf(buf);
+    msgbuf.insert(0, std::string("脚本管理器")+": ");
+
+	output_callback(logtype, QString::fromLocal8Bit(msgbuf.c_str()).toStdString().c_str());
     va_end(va_args);
 }
 
-void ScriptManager::set_output_callback(std::function<void(int type, char*)> _callback)
+void ScriptManager::set_output_callback(std::function<void(int type, const char*)> _callback)
 {
     output_callback = _callback;
 }
 
-void ScriptManager::set_script(std::string filename)
+void ScriptManager::set_script(const std::string& filename)
 {
     mhprintf(LOG_INFO, "选定脚本: %s", filename.c_str());
     script_filename = filename;
@@ -168,6 +172,7 @@ HANDLE ScriptManager::get_process_handle(int nID)//通过进程ID获取进程句
 //关闭所有窗口
 void ScriptManager::close_all_game()
 {
+    get_game_window(GAME_WND_CLASS);
     for(size_t i = 0; i < game_wnds.size(); i++)
     {
         DWORD pid;
@@ -175,6 +180,8 @@ void ScriptManager::close_all_game()
         HANDLE process = get_process_handle(pid);
         ::TerminateProcess(process, 0);
     }
+
+    game_wnds.clear();
 }
 
 void ScriptManager::list_window()

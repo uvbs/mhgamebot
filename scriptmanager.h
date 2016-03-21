@@ -37,7 +37,7 @@ private:
 public:
     void mhprintf(LOG_TYPE logtype, const char *msg_format, ...);
 
-    void set_script(std::string filename);
+    void set_script(const std::string& filename);
 
 
     std::vector<GameScript*>& create_all_script();

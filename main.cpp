@@ -6,21 +6,25 @@
 #include <QStyle>
 #include <QFile>
 #include <mutex>
-
+#include <clocale>
 
 int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);
 
-    QString path;
-    QDir dir;
-    path=dir.currentPath();
-    qDebug() << path;
 
-    QStringList list;
-    list.append(path.append(u8"/plugins"));
-    app.setLibraryPaths(list);
-    qDebug() << path;
+//    QString path;
+//    path=QDir::currentPath();
+//    qDebug() << path;
+
+//    QStringList list;
+//    list.append(path.append("/plugins"));
+//    app.setLibraryPaths(list);
+//    qDebug() << path;
+
+
+    QString workpath = QDir::currentPath();
+    QDir::setCurrent(workpath);
 
     QFile file(":/resource/stylecss.css");
     file.open(QFile::ReadOnly);
