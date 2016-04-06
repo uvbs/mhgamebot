@@ -20,7 +20,7 @@
 #include "define.h"
 #include "config.h"
 
-using help_fun = std::function<bool(DAMA_PARAM*, const char*, int)>;
+using help_fun = std::function<bool(const char*, int)>;
 using output_fun = std::function<void(int type, const char*)>;
 
 
@@ -45,8 +45,9 @@ public:
     void set_sendhelp_callback(help_fun callback);
 
     //发送图片到人工服务器
-    bool send_pic_to_helper(DAMA_PARAM *param, const char* data, int len);
-    void recv_help_answer(int x, int y);
+    bool send_pic_to_helper(const char* data, int len){
+        return help_callback(data, len);
+    }
 
 
     PLAYER_STATUS get_player_status();
@@ -70,16 +71,16 @@ public:
 
 
     //右键点击, 攻击状态取消攻击
-    void rclick(int x, int y);
     void rclick(const char *image);
     void click(int x, int y, int lbutton = 1);
-    void click(const char *image, double threshold = DEFAULT_THERSHOLD);
+    void click(const std::string& image, double threshold = DEFAULT_THERSHOLD);
+    void click(const std::string &image, int offset_x, int offset_y, double thershold = DEFAULT_THERSHOLD);
+
     void click_nofix(int x, int y);
     void click_nofix(const char *image);
     void click_nomove(int x, int y);
 
     //发送按键
-    void key_press(int vk);
     void key_press(std::string key);
 
 
@@ -96,6 +97,12 @@ public:
     double match_picture(const std::vector<uchar>& img1, const std::vector<uchar>& img2, cv::Point &matchLoc);
     double match_picture(const std::vector<uchar>& img1, const cv::Mat& pic, cv::Point &matchLoc);
 
+
+    //坐标相关, 用来抓鬼
+    std::string get_task_xy();
+    std::string get_map_xy();
+
+    //
 
     POINT get_cur_game_mouse();
     POINT get_cur_mouse();
@@ -117,15 +124,22 @@ public:
     void read_global(bool read);
     void slow_click(int x1, int y1, int lbutton = 1);
 
+    void set_help_ok(){
+        recv_help = true;
+    }
+
 private:
     void get_mouse_vec(int x, int y, int x2, int y2, std::vector<int>& r);
 
 
+    bool recv_help;  //请求帮助被处理的标志
     std::string _script_name;
     PLAYER_STATUS last_player_status;
 
 private:
     BYTE *screen_buf;
+    std::vector<uchar> _screen_data;
+
     static std::map<lua_State*, GameScript*> inst_map;
     HWND wnd;
     int script_id;
@@ -138,7 +152,6 @@ private:
     bool task_running = false;
 
     HDC hdc;
-    std::vector<uchar> _screen_data;
 
     //鼠标内能移动的大小和窗口的比, 用来转换窗口座标到游戏内座标
     double ratio_x;
@@ -149,33 +162,26 @@ private:
     int cur_game_x;
     int cur_game_y;
 
-    void close_game_wnd_stuff();
 
     //从脚本读取的可用任务列表中匹配任务, 匹配到返回true, 没有返回false
     bool match_task();
-    bool _match_task(std::string imgname);
+    double _match_task(std::string imgname, cv::Point& matchLoc);
 
     void process_pic_task(cv::Mat &src, cv::Mat& result);
     void process_pic_task_redline(cv::Mat& src, cv::Mat& result);
     void process_pic_mouse(cv::Mat& src, cv::Mat& result);
     void process_pic_mouse1(cv::Mat& src, cv::Mat& result);
+    void process_pic_door(cv::Mat& src);        //传送门
 
-
-    void check_pic_exists(std::string &imgfile);
+    void check_pic_exists(std::string& imgfile);
     bool find_red_line(std::string image, POINT &point, RECT rect);
-    const std::vector<uchar> &screen_data();
+    const std::vector<uchar>& screen_data();
+
+    void key_press(int vk);
 
     output_fun output_callback;
     help_fun help_callback;
     void mhsleep(int ms, bool chk_status = true);
-
-    void set_helper_event(){
-        helper_event = false;
-        //让等待的线程继续执行
-    }
-    bool get_helper_event(){
-        return helper_event;
-    }
 
     static cv::Mat mouse1;
     static cv::Mat mouse2;
@@ -188,10 +194,13 @@ private:
     //TODO:
     static std::map<std::string, cv::Mat> _pic_data;
 
+    //所有客户端匹配抓鬼任务, 匹配到的共享到这里
+    //TODO:
+    static std::string zg_map;  //抓鬼的地图
+    static std::string zg_xy;   //共享的坐标
 
-    //事件
-private:
-    bool helper_event;
+    void wait_appear(std::string name, RECT rect = rect_game, double threshold = DEFAULT_THERSHOLD);
+    std::string _get_xy_string(std::string dir, const RECT& rect);
 };
 
 

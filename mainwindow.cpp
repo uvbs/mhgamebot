@@ -1,7 +1,7 @@
 ﻿#include "mainwindow.h"
 #include "ui_mainwindow.h"
 
-
+#include <QHostInfo>
 
 #include "optiondlg.h"
 
@@ -13,7 +13,6 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->setupUi(this);
 
     connect(this, SIGNAL(sign_append_msg_to_dbg(QString)), ui->textEdit_log, SLOT(append(QString)));
-    connect(this, SIGNAL(sign_append_msg_to_edit(QString)), ui->textEdit, SLOT(append(QString)));
     connect(this, SIGNAL(sign_status_msg(QString, int)), ui->statusbar, SLOT(showMessage(QString,int)));
 
     //加载配置
@@ -36,7 +35,13 @@ MainWindow::MainWindow(QWidget *parent) :
     network.set_connect_callback([this](int id, const boost::system::error_code& err){
         if(err){
             sign_status_msg(QString::fromLocal8Bit("连接服务器失败"), 2000);
+
+            //
             status_text->setText(QString::fromLocal8Bit("未连接服务器"));
+
+            sign_append_msg_to_dbg(QString::fromLocal8Bit("连接服务器失败"));
+            sign_append_msg_to_dbg(err.message().c_str());
+
         }
         else
         {
@@ -46,14 +51,13 @@ MainWindow::MainWindow(QWidget *parent) :
 
             //发送登录包到服务器
             LOGIN_PARAM login_param;
-            strncpy(login_param.pcname, "pc name", MAX_PCNAME);
-            strncpy(login_param.script_name,"无", MAX_SCRIPTNAME);
-            strncpy(login_param.script_type, "无", MAX_SCRIPTNAME);
+            QString machineName = QHostInfo::localHostName();
+            strncpy(login_param.pcname, machineName.toLocal8Bit().data(), MAX_PCNAME);
             login_param.status = SCRIPT_STATUS::stop;
             login_param.game_wnd_counts = 0;
             login_param.start_time = 0;
 
-            network.send(CMD_ID::login, (char*)&login_param, sizeof(LOGIN_PARAM));
+            network.send(login, (char*)&login_param, sizeof(LOGIN_PARAM));
 
         }
 
@@ -62,22 +66,77 @@ MainWindow::MainWindow(QWidget *parent) :
     //读取回调
     network.set_process_callback([this](int id, int cmdid, const char* sz, int len){
         qDebug() << "process callback";
+
+        switch(cmdid)
+        {
+            case dama:
+            {
+
+                DAMA_RE* re = (DAMA_RE*)sz;
+
+                qDebug() << "script process dama";
+                qDebug() << "x:" << re->x;
+                qDebug() << "y:" << re->y;
+                qDebug() << "script id:" << re->script_id;
+
+
+                //让脚本处理
+                GameScript* script = script_manager.get_script(re->script_id);
+
+                try
+                {
+                    if(script)
+                    {
+                        if(re->rightclick == true)
+                        {
+                            script->click(re->x, re->y, 0);
+                        }
+                        else
+                        {
+                            script->click(re->x, re->y);
+                        }
+
+                    }
+                    else
+                    {
+                        qDebug() << "err script id";
+                    }
+
+                }
+                catch(std::exception& e)
+                {
+                    qDebug() << QString::fromLocal8Bit(e.what());
+                }
+                catch(...)
+                {
+                    qDebug() << "dama exception!";
+                }
+
+                //停止脚本的等待
+                script->set_help_ok();
+
+                break;
+            }
+
+        }
+
+
     });
 
     network.set_error_callback([this](int id, const boost::system::error_code& err){
-        status_text->setText("断开与服务器的连接");
-    });
-
-    //启动客户端网络
-    _network_thread = new std::thread([this](){
-        network.start();
+        status_text->setText(QString::fromLocal8Bit("断开与服务器的连接"));
     });
 
 
+    network.start();
+
+
+
+    QListWidget* widget = create_widget(QString::fromLocal8Bit("脚本"));
 
     //设置脚本管理器的输出回调
-    script_manager.set_output_callback([&](int type, const char *sz){
-        sign_append_msg_to_edit(sz);
+    script_manager.set_output_callback([=](int type, const char *sz){
+        widget->addItem(QString::fromLocal8Bit(sz));
     });
 
     ui->stackedWidget->setCurrentIndex(0);
@@ -94,42 +153,48 @@ MainWindow::MainWindow(QWidget *parent) :
 
 MainWindow::~MainWindow()
 {
+    delete status_text;
+
+
     _config.save();
     script_manager.stop();
     delete ui;
 }
 
+void MainWindow::delete_widget()
+{
+    for(int i = ui->tabWidget->count(); i > 0 ; i--){
+        QListWidget* widget = (QListWidget*)ui->tabWidget->widget(1);
+        if(widget)
+        {
+            widget->deleteLater();
+        }
 
+        ui->tabWidget->removeTab(i);
+    }
+
+}
 
 //运行脚本
 void MainWindow::on_pushButton_start_clicked()
 {
 
+    delete_widget();
+
     //设置好回调
     std::vector<GameScript*> scripts = script_manager.create_all_script();
     for(int i = 0; i < scripts.size(); i++)
     {
+        QListWidget* widget = create_widget(QString::fromLocal8Bit("窗口%1").arg(scripts[i]->get_id()));
+
         //创建tab窗口
-        scripts[i]->set_output_callback([=](int type, const char* sz){
-            sign_append_msg_to_edit(sz);
+        scripts[i]->set_output_callback([this, widget](int type, const char* sz){
+            widget->addItem(sz);
         });
 
-        //TODO:
-        scripts[i]->set_sendhelp_callback([this](DAMA_PARAM* param, const char* data, int len)->bool{
-            sign_append_msg_to_dbg("新的人工请求发出");
-            sign_append_msg_to_dbg(QString::number(param->height));
-            sign_append_msg_to_dbg(QString::number(param->width));
-            sign_append_msg_to_dbg(QString::number(param->x));
-            sign_append_msg_to_dbg(QString::number(param->y));
-            sign_append_msg_to_dbg("done");
 
-            int buflen = sizeof(DAMA_PARAM) + len;
-            char* buf = new char[buflen];
-            memcpy(buf, param, sizeof(DAMA_PARAM));
-            memcpy(buf + sizeof(DAMA_PARAM), data, len);
-            network.send(CMD_ID::dama, buf, buflen);
-            delete buf;
-
+        scripts[i]->set_sendhelp_callback([this](const char* buf, int len)->bool{
+            network.send(CMD_ID::dama, buf, len);
             return true;
         });
     }
@@ -226,6 +291,14 @@ void MainWindow::create_status_bar()
     ui->statusbar->addPermanentWidget(status_text);
 }
 
+QListWidget* MainWindow::create_widget(const QString& wnd_name)
+{
+    QListWidget* widget = new QListWidget();
+    widget->setFrameShape(QFrame::NoFrame);
+    ui->tabWidget->addTab(widget,wnd_name);
+    return widget;
+}
+
 void MainWindow::on_pushButton_stop_clicked()
 {
     script_manager.stop();
@@ -239,4 +312,12 @@ void MainWindow::on_pushButton_stop_clicked()
 void MainWindow::on_action_close_all_game_triggered()
 {
     script_manager.close_all_game();
+}
+
+
+
+void MainWindow::on_pushButton_reconnect_clicked()
+{
+    network.stop();
+    network.start();
 }

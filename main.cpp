@@ -12,19 +12,9 @@ int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);
 
-
-//    QString path;
-//    path=QDir::currentPath();
-//    qDebug() << path;
-
-//    QStringList list;
-//    list.append(path.append("/plugins"));
-//    app.setLibraryPaths(list);
-//    qDebug() << path;
-
-
-    QString workpath = QDir::currentPath();
-    QDir::setCurrent(workpath);
+    //当前工作目录
+    QString mhbot_dir = QCoreApplication::applicationDirPath();
+    QDir::setCurrent(mhbot_dir);
 
     QFile file(":/resource/stylecss.css");
     file.open(QFile::ReadOnly);

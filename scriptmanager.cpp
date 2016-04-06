@@ -49,7 +49,8 @@ bool ScriptManager::launcher_game(int new_counts)
     mhprintf(LOG_NORMAL,"等待窗口出现..");
     int counts = 0;
     do{
-       counts = get_game_window(GAME_WND_CLASS);
+       auto wndvec = get_game_window(GAME_WND_CLASS);
+       counts = wndvec.size();
     }
     while(counts != new_counts);
     
@@ -67,10 +68,9 @@ void ScriptManager::mhprintf(LOG_TYPE logtype, const char *msg_format, ...)
 
     char buf[256];
     vsprintf(buf, msg_format, va_args);
-    std::string msgbuf(buf);
-    msgbuf.insert(0, std::string("脚本管理器")+": ");
 
-	output_callback(logtype, QString::fromLocal8Bit(msgbuf.c_str()).toStdString().c_str());
+
+	output_callback(logtype, buf);
     va_end(va_args);
 }
 
@@ -125,7 +125,7 @@ void ScriptManager::hide_chat_window()
     }
 }
 
-int ScriptManager::get_game_window(const std::string& classname)
+const std::vector<HWND>& ScriptManager::get_game_window(const std::string& classname)
 {
 
     //清空窗口集合
@@ -142,7 +142,7 @@ int ScriptManager::get_game_window(const std::string& classname)
 
     }
 
-    return game_wnds.size();
+    return game_wnds;
 }
 
 std::string ScriptManager::find_game_path()
@@ -263,6 +263,11 @@ void ScriptManager::start()
         mhprintf(LOG_INFO, "运行中..");
     }
 
+}
+
+GameScript* ScriptManager::get_script(int id)
+{
+    return game_scripts[id];
 }
 
 void ScriptManager::read_accounts()

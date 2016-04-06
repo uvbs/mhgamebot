@@ -44,17 +44,14 @@ public:
     //设置脚本管理器的输出回调
     void set_output_callback(output_fun _callback);
 
-    //0停止, 1运行
-    bool get_script_status(){
-        return game_scripts.size() > 0;
-    }
 
 public:
     void stop();  //停止脚本
     void start();     //运行脚本
 
+    GameScript* get_script(int id);
     void read_accounts();
-    int get_game_window(const std::string& classname);
+    const std::vector<HWND>& get_game_window(const std::string& classname);
     std::string find_game_path();
     void hide_chat_window();
     HANDLE get_process_handle(int nID);

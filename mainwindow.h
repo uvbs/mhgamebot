@@ -30,7 +30,6 @@ protected:
 
 signals:
     void sign_append_msg_to_dbg(const QString& msg);
-    void sign_append_msg_to_edit(const QString& msg);
     void sign_status_msg(const QString& msg, int time);
 
 
@@ -51,15 +50,19 @@ private slots:
 
     void on_action_close_all_game_triggered();
 
+    void on_pushButton_reconnect_clicked();
+
 private:
     QLabel *status_text;
     Ui::MainWindow *ui;
     ScriptManager script_manager;
     GameConfig _config;
     MHNetwork network;
-    std::thread* _network_thread;
+
     void update_window_title(const QString& title);
     void create_status_bar();
+    QListWidget* create_widget(const QString& wnd_name);
+    void delete_widget();
 };
 
 #endif // MAINWINDOW_H

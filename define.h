@@ -13,7 +13,7 @@
 #define MHCHATWNDCLASS    "XYWZ_CHAT"
 #define WAIT_TIMES  50		//等待次数, 对待新服卡的问题
 #define WAIT_NORMAL 300			//平常等待的时辰
-#define WAIT_POSTMSG 100
+#define WAIT_POSTMSG 300
 
 //默认匹配程度
 #define DEFAULT_THERSHOLD 0.7
@@ -21,8 +21,8 @@
 
 //方便注册自己的函数
 #define REGLUAFUN(z, x, y) \
-    lua_register(z, x, y);
-//    mhprintf(LOG_NORMAL,"注册函数 %s", x);
+    lua_register(z, x, y); \
+    mhprintf(LOG_NORMAL,"注册函数 %s", x);
 
 #define REGLUADATA(z, x, y) \
     lua_pushinteger(z, x); \
@@ -52,13 +52,12 @@ public:
 };
 
 
+
 //玩家几种状态
 enum PLAYER_STATUS
 {
     NORMAL,
     COMBAT,
-    PAOSHANG, //跑商
-    BIAO,  //镖
     NOTIME, //体验状态
     GC,     //动画状态
     ATTACK,  //点击了选中鼠标状态
@@ -73,13 +72,18 @@ const RECT rect_task = {470, 155, SCREEN_WIDTH, SCREEN_HEIGHT/2+50};
 const RECT rect_position = {27, 27, 120, 41};
 const RECT rect_game = {0, 0, SCREEN_WIDTH, SCREEN_HEIGHT};
 const RECT rect_left_wnd = {0, 0, SCREEN_WIDTH / 2, SCREEN_HEIGHT};
-const RECT rect_health = {570, 0 , SCREEN_WIDTH, 14};  //玩家血条和宠物血条的区域
+const RECT rect_health = {570, 0 , SCREEN_WIDTH, 15};  //玩家血条和宠物血条的区域
+const RECT rect_pet_health = {455, 0 , 515, 15};  //玩家血条和宠物血条的区域
+const RECT rect_dlg_flag = {515, 200, SCREEN_WIDTH, SCREEN_HEIGHT};
+
 
 //游戏按钮
 const POINT point_player = {548, 27};
 const POINT point_pet = {434, 21};
 const POINT point_map = {75, 54};
 const POINT point_player_healher = {610, 10};
+const POINT point_pet_healher = {485, 10};
+
 
 const POINT rect_attack = {313,441};   //攻击
 const POINT rect_tools = {331,467};     //道具
