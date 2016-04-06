@@ -23,20 +23,22 @@ INCLUDEPATH += D:/mylibrary/opencv/build/include
 
 LIBS += -LD:/mylibrary/boost_1_60_0/lib64-msvc-12.0
 
-debug {
+
+CONFIG(debug, debug|release) {
     LIBS += libboost_filesystem-vc120-mt-gd-1_60.lib
     LIBS += libboost_system-vc120-mt-gd-1_60.lib
     LIBS += libboost_date_time-vc120-mt-gd-1_60.lib
     LIBS += libboost_regex-vc120-mt-gd-1_60.lib
+}
 
-}else
-{
+CONFIG(release, debug|release) {
     LIBS += libboost_filesystem-vc120-mt-1_60.lib
     LIBS += libboost_system-vc120-mt-1_60.lib
     LIBS += libboost_date_time-vc120-mt-1_60.lib
     LIBS += libboost_regex-vc120-mt-1_60.lib
 }
 
+LIBS += dbghelp.lib
 
 
 

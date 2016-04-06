@@ -939,6 +939,10 @@ void GameScript::regist_lua_fun()
                 luaL_error(L, "参数数量错误");
             }
         }
+        catch(std::exception& e)
+        {
+            luaL_error(L, e.what());
+        }
         catch(...)
         {
             luaL_error(L, "点击图片 异常");
@@ -1335,6 +1339,13 @@ double GameScript::_match_picture(const cv::Mat& matchscreen, const cv::Mat& mat
     {
         cv::matchTemplate(matchscreen, matchpic, result, match_method);
         cv::minMaxLoc(result, &minVal, &maxVal, &minLoc, &maxLoc, cv::Mat() );
+
+        if( match_method  == CV_TM_SQDIFF || match_method == CV_TM_SQDIFF_NORMED ){
+            matchLoc = minLoc;
+        }
+        else{
+            matchLoc = maxLoc;
+        }
     }
 
 
@@ -1685,8 +1696,8 @@ void GameScript::get_mouse_vec(int x, int y, int x2, int y2, std::vector<int>& r
     {
         char buf[200];
         sprintf(buf, "目的坐标异常 x: %d, y: %d", x2, y2);
-        cur_game_x = 0;
-        cur_game_y = 0;
+        cur_game_x = 200;
+        cur_game_y = 200;
         throw exception_xy(buf);
     }
 
