@@ -29,7 +29,7 @@ void DumpMiniDump(HANDLE hFile, EXCEPTION_POINTERS* excpInfo)
                 GetCurrentProcess(),
                 GetCurrentProcessId(),
                 hFile,
-                MiniDumpWithFullMemory,
+                MiniDumpNormal,
                 &eInfo,
                 NULL,
                 NULL);
