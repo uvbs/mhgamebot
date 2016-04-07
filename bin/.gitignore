@@ -1,0 +1,5 @@
+*.dll
+*.dmp
+*.db
+*.pdb
+*.exe
