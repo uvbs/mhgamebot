@@ -57,8 +57,7 @@ MainWindow::MainWindow(QWidget *parent) :
             login_param.game_wnd_counts = 0;
             login_param.start_time = 0;
 
-            network.send(login, (char*)&login_param, sizeof(LOGIN_PARAM));
-
+            network.send(CMD_ID::login, (char*)&login_param, sizeof(LOGIN_PARAM));
         }
 
     });
@@ -87,6 +86,7 @@ MainWindow::MainWindow(QWidget *parent) :
                 {
                     if(script)
                     {
+                        script->top_wnd();
                         if(re->rightclick == true)
                         {
                             script->click(re->x, re->y, 0);
@@ -189,6 +189,17 @@ void MainWindow::on_pushButton_start_clicked()
 
         //创建tab窗口
         scripts[i]->set_output_callback([this, widget](int type, const char* sz){
+            if(widget)
+            {
+                if(widget->count() > 50)
+                {
+                    QListWidgetItem* item = widget->takeItem(0);
+                    if(item){
+                        delete item;
+                    }
+                }
+            }
+
             widget->addItem(sz);
         });
 
@@ -295,6 +306,15 @@ QListWidget* MainWindow::create_widget(const QString& wnd_name)
 {
     QListWidget* widget = new QListWidget();
     widget->setFrameShape(QFrame::NoFrame);
+
+    //自动滚动
+    connect(widget->model(),
+            SIGNAL(rowsInserted(const QModelIndex &, int, int ) ),
+            widget,
+            SLOT(scrollToBottom())
+            );
+
+
     ui->tabWidget->addTab(widget,wnd_name);
     return widget;
 }
