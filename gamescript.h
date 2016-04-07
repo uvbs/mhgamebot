@@ -3,7 +3,11 @@
 
 
 #include <windows.h>
-#include <lua.hpp>
+
+#include "lua.h"
+#include "lualib.h"
+#include "lauxlib.h"
+
 #include <list>
 #include <boost/lexical_cast.hpp>
 #include <string>
@@ -73,8 +77,8 @@ public:
     //右键点击, 攻击状态取消攻击
     void rclick(const char *image);
     void click(int x, int y, int lbutton = 1);
-    void click(const std::string& image, double threshold = DEFAULT_THERSHOLD);
-    void click(const std::string &image, int offset_x, int offset_y, double thershold = DEFAULT_THERSHOLD);
+    void click(const std::string& image, double threshold = DEFAULT_THERSHOLD, bool check_exists = true);
+    void click(const std::string &image, int offset_x, int offset_y, double thershold = DEFAULT_THERSHOLD, bool check_exists = true);
 
     void click_nofix(int x, int y);
     void click_nofix(const char *image);
@@ -177,7 +181,6 @@ private:
     bool find_red_line(std::string image, POINT &point, RECT rect);
     const std::vector<uchar>& screen_data();
 
-    void key_press(int vk);
 
     output_fun output_callback;
     help_fun help_callback;

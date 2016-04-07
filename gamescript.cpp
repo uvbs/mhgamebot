@@ -246,17 +246,15 @@ double GameScript::_match_task(std::string imgname, cv::Point& matchLoc)
 PLAYER_STATUS GameScript::get_player_status()
 {
     if(is_match_pic_in_screen("战斗中.png", rect_game, 0.8)){
-        mhprintf(LOG_INFO, "战斗状态");
         return PLAYER_STATUS::COMBAT;
     }
     else if(is_match_pic_in_screen("游戏内.png", rect_game, 0.8)){
-        mhprintf(LOG_INFO, "平常状态");
         return PLAYER_STATUS::NORMAL;
     }
-    else if(is_match_pic_in_screen("体验状态.png", rect_game, 0.8)){
-        mhprintf(LOG_INFO, "体验状态");
-        return PLAYER_STATUS::NOTIME;
-    }
+//    else if(is_match_pic_in_screen("体验状态.png", rect_game, 0.8)){
+//        mhprintf(LOG_INFO, "体验状态");
+//        return PLAYER_STATUS::NOTIME;
+//    }
     else if(is_match_pic_in_screen("跳过动画.png", rect_game, 0.8)){
         mhprintf(LOG_INFO, "跳过动画");
         return PLAYER_STATUS::GC;
@@ -266,6 +264,7 @@ PLAYER_STATUS GameScript::get_player_status()
         return PLAYER_STATUS::NORMAL;
     }
 
+    //attack_start = std::chrono::steady_clock::now();
 }
 
 
@@ -290,7 +289,8 @@ void GameScript::process_pic_task(cv::Mat &src, cv::Mat& result)
 
     //170是调整了坐标数字匹配的.
     //原本的179就导致9这个数字不太清晰
-    inRange(hsv, cv::Scalar(0, 0, 180), cv::Scalar(170, 255, 255), result);
+    //fix 179能处理红字..
+    inRange(hsv, cv::Scalar(0, 0, 180), cv::Scalar(180, 255, 255), result);
 }
 
 //除红色之外的其他颜色都处理成黑色
@@ -354,11 +354,33 @@ void GameScript::regist_lua_fun()
     lua_setglobal(lua_status, "默认程度");
 
 
+    REGLUAFUN(lua_status, "调试信息2", [](lua_State* L)->int{
+
+        try
+        {
+            int arg_counts = lua_gettop(L);
+            if(arg_counts != 1)
+                luaL_error(L, "调试信息2 参数错误");
+
+            std::string info = lua_tostring(L, 1);
+            qDebug() << QString::fromLocal8Bit(info.c_str());
+        }
+        catch(...)
+        {
+            luaL_error(L, "调试信息2 未知异常");
+        }
+
+        return 0;
+    });
 
     REGLUAFUN(lua_status, "获取坐标", [](lua_State* L)->int{
 
         try
         {
+            int arg_counts = lua_gettop(L);
+            if(arg_counts != 0)
+                luaL_error(L, "获取坐标 参数错误");
+
             std::string xy = script_inst->get_task_xy();
             script_inst->mhprintf(LOG_INFO, "%s", xy.c_str());
         }
@@ -373,6 +395,10 @@ void GameScript::regist_lua_fun()
     REGLUAFUN(lua_status, "加血", [](lua_State* L)->int{
         try
         {
+            int arg_counts = lua_gettop(L);
+            if(arg_counts != 0)
+                luaL_error(L, "加血 参数错误");
+
             script_inst->click(point_player_healher.x, point_player_healher.y, 0);
             script_inst->click(point_pet_healher.x, point_pet_healher.y, 0);
         }
@@ -388,6 +414,10 @@ void GameScript::regist_lua_fun()
 
         try
         {
+            int arg_counts = lua_gettop(L);
+            if(arg_counts != 0)
+                luaL_error(L, "点击传送门 参数错误");
+
             cv::Mat _screen = cv::imdecode(script_inst->get_screen_data(), cv::IMREAD_COLOR);
             cv::Mat _pic = cv::imread("pic\\传送门.png");
 
@@ -422,12 +452,18 @@ void GameScript::regist_lua_fun()
     REGLUAFUN(lua_status, "等待对话框出现", [](lua_State* L)->int{
         try
         {
+
+            int arg_counts = lua_gettop(L);
+            if(arg_counts != 0)
+                luaL_error(L, "等待对话框出现 参数错误");
+
+
             //等待对话框出现
             script_inst->wait_appear("关闭", rect_dlg_flag);
         }
         catch(...)
         {
-
+            luaL_error(L, "等待对话框出现 异常");
         }
 
         return 0;
@@ -446,6 +482,7 @@ void GameScript::regist_lua_fun()
 
         try
         {
+
             if(arg_counts == 1){
                 img = lua_tostring(L, 1);
             }
@@ -553,19 +590,15 @@ void GameScript::regist_lua_fun()
 
 
             DAMA_PARAM param;
+            param.script_id = script_inst->get_id();
             param.width = 640;
             param.height = 480;
             param.x = 0;
             param.y = 0;
-            param.tip_len = 0;
 
             int size = sizeof(DAMA_PARAM) + image2.byteCount();
             char* buf = new char[size];
-            ((DAMA_PARAM*)buf)->id = script_inst->get_id();
-            ((DAMA_PARAM*)buf)->width = 640;
-            ((DAMA_PARAM*)buf)->height = 480;
-            ((DAMA_PARAM*)buf)->x = 0;
-            ((DAMA_PARAM*)buf)->y = 0;
+            memcpy(buf, &param, sizeof(DAMA_PARAM));
             memcpy(buf+sizeof(DAMA_PARAM), image2.constBits(), image2.byteCount());
 
             script_inst->send_pic_to_helper(buf, size);
@@ -580,12 +613,6 @@ void GameScript::regist_lua_fun()
             script_inst->recv_help = false;
 
             delete []buf;
-        }
-        catch(std::runtime_error& e)
-        {
-            script_inst->end_task();
-            luaL_error(L, "发送人工请求 异常 %s", e.what());
-
         }
         catch(...)
         {
@@ -602,20 +629,20 @@ void GameScript::regist_lua_fun()
         try
         {
             have_task = script_inst->match_task();
+            lua_pushboolean(L, have_task);
         }
         catch(...)
         {
-            have_task = false;
+            luaL_error(L, "匹配任务 异常");
         }
 
-        lua_pushboolean(L, have_task);
         return 1;
     });
 
     REGLUAFUN(lua_status, "获取玩家状态", [](lua_State* L)->int{
         try
         {
-        lua_pushinteger(L, script_inst->get_player_status());
+            lua_pushinteger(L, script_inst->get_player_status());
         }
         catch(...)
         {
@@ -628,7 +655,7 @@ void GameScript::regist_lua_fun()
     REGLUAFUN(lua_status, "检测离线", [](lua_State* L)->int{
         try
         {
-        lua_pushboolean(L, script_inst->check_offline());
+            lua_pushboolean(L, script_inst->check_offline());
         }
         catch(...)
         {
@@ -645,10 +672,6 @@ void GameScript::regist_lua_fun()
             int time = lua_tointeger(L, 1);
             script_inst->mhsleep(time * 1000);
         }
-        catch(std::exception& e)
-        {
-            luaL_error(L, e.what());
-        }
         catch(...)
         {
             luaL_error(L, "延迟 异常");
@@ -660,47 +683,47 @@ void GameScript::regist_lua_fun()
     REGLUAFUN(lua_status, "调试信息", [](lua_State* L)->int{
         try
         {
-        int arg_counts = lua_gettop(L);
-        std::string info;
-        LOG_TYPE logtype = LOG_NORMAL;
+            int arg_counts = lua_gettop(L);
+            std::string info;
+            LOG_TYPE logtype = LOG_NORMAL;
 
-        if(arg_counts == 1){
-            info = lua_tostring(L, 1);
-        }
-        else if(arg_counts == 2){
-            info = lua_tostring(L, 1);
-            logtype = (LOG_TYPE)lua_tointeger(L, 2);
-        }
+            if(arg_counts == 1){
+                info = lua_tostring(L, 1);
+            }
+            else if(arg_counts == 2){
+                info = lua_tostring(L, 1);
+                logtype = (LOG_TYPE)lua_tointeger(L, 2);
+            }
 
-        script_inst->mhprintf(logtype, info.c_str());
+            script_inst->mhprintf(logtype, info.c_str());
 
         }
         catch(...)
         {
-
+            luaL_error(L, "调试信息 异常");
         }
 
         return 0;
     });
 
 
-    //TODO: 这个函数更改过, 可能不再使用之前的脚本
+
     REGLUAFUN(lua_status, "点击", [](lua_State* L)->int{
         try
         {
-        assert(lua_gettop(L) == 2);
-        int x = lua_tointeger(L, 1);
-        int y = lua_tointeger(L, 2);
+            assert(lua_gettop(L) == 2);
+            int x = lua_tointeger(L, 1);
+            int y = lua_tointeger(L, 2);
 
-        //实验测试这样移动会完成给予的点击操作
-        script_inst->slow_click(script_inst->get_cur_game_mouse().x + x,
-                                script_inst->get_cur_game_mouse().y + y,
-                                1);
+            //实验测试这样移动会完成给予的点击操作
+            script_inst->slow_click(script_inst->get_cur_game_mouse().x + x,
+                                    script_inst->get_cur_game_mouse().y + y,
+                                    1);
 
         }
         catch(...)
         {
-
+            luaL_error(L, "点击 异常");
         }
 
         return 0;
@@ -712,14 +735,21 @@ void GameScript::regist_lua_fun()
         int arg_counts = lua_gettop(L);
         POINT pt;
 
-        if(arg_counts == 2){
-            pt.x = lua_tointeger(L, 1);
-            pt.y = lua_tointeger(L, 2);
-            script_inst->click(pt.x, pt.y, 3);
-        }
-        else
+        try
         {
-            luaL_error(L, "移动鼠标到 参数错误");
+            if(arg_counts == 2){
+                pt.x = lua_tointeger(L, 1);
+                pt.y = lua_tointeger(L, 2);
+                script_inst->click(pt.x, pt.y, 3);
+            }
+            else
+            {
+                luaL_error(L, "移动鼠标到 参数错误");
+            }
+        }
+        catch(...)
+        {
+            luaL_error(L, "移动鼠标到 异常");
         }
 
         return 0;
@@ -729,7 +759,7 @@ void GameScript::regist_lua_fun()
 
         try{
             std::string keystr = lua_tostring(L, 1);
-            script_inst->mhprintf(LOG_INFO, "按键 %s", keystr.c_str());
+            //script_inst->mhprintf(LOG_INFO, "按键 %s", keystr.c_str());
             script_inst->key_press(keystr);
         }
         catch(...)
@@ -742,23 +772,30 @@ void GameScript::regist_lua_fun()
 
     REGLUAFUN(lua_status, "存在任务", [](lua_State* L)->int{
 
-        std::string img = lua_tostring(L, 1);
-        script_inst->check_pic_exists(img);
+        try
+        {
+            std::string img = lua_tostring(L, 1);
+            script_inst->check_pic_exists(img);
 
-        cv::Point matchLoc;
-        bool match = (script_inst->_match_task(img, matchLoc) >= 0.95) ? true: false;
-        lua_pushboolean(L, match);
+            cv::Point matchLoc;
+            bool match = (script_inst->_match_task(img, matchLoc) >= 0.95) ? true: false;
+            lua_pushboolean(L, match);
+        }
+        catch(...)
+        {
+            luaL_error(L, "存在任务 异常");
+        }
+
         return 1;
     });
 
     REGLUAFUN(lua_status, "获得图片位置", [](lua_State* L)->int{
-
-        int arg_counts = lua_gettop(L);
-        std::string pic;
-        double thershold = DEFAULT_THERSHOLD;
-
         try
         {
+            int arg_counts = lua_gettop(L);
+            std::string pic;
+            double thershold = DEFAULT_THERSHOLD;
+
             if(arg_counts == 2)
             {
                 pic = lua_tostring(L, 1);
@@ -785,11 +822,6 @@ void GameScript::regist_lua_fun()
                 luaL_error(L, err.c_str());
             }
         }
-        catch(std::runtime_error& e)
-        {
-            luaL_error(L, "获得图片位置 异常 %s", e.what());
-        }
-
         catch(...)
         {
             luaL_error(L, "获得图片位置 异常");
@@ -799,67 +831,92 @@ void GameScript::regist_lua_fun()
     });
 
     REGLUAFUN(lua_status, "结束脚本", [](lua_State* L)->int{
-        std::string reason = lua_tostring(L, 1);
-        script_inst->mhprintf(LOG_NORMAL,reason.c_str());
-        script_inst->end_task();
+        try{
+            int arg_counts = lua_gettop(L);
+            if(arg_counts != 0){
+                luaL_error(L, "结束脚本 参数数量错误");
+            }
+
+            std::string reason = lua_tostring(L, 1);
+            script_inst->mhprintf(LOG_NORMAL,reason.c_str());
+            script_inst->end_task();
+        }
+        catch(...){
+            script_inst->end_task();
+        }
+
         return 0;
     });
 
 
 
     REGLUAFUN(lua_status, "存在图片", [](lua_State* L)->int{
-        int arg_counts = lua_gettop(L);
 
-        std::string imgname;
-        RECT rect = rect_game;
-        double threshold = DEFAULT_THERSHOLD;
+        try
+        {
+            int arg_counts = lua_gettop(L);
 
-        if(arg_counts == 1){
-            imgname = lua_tostring(L, 1);
-        }
-        else if(arg_counts == 2){
-            imgname = lua_tostring(L, 1);
-            threshold = lua_tonumber(L, 2);
-        }
-        else if(arg_counts == 3){
-            imgname = lua_tostring(L, 1);
-            threshold = lua_tonumber(L, 2);
-            int m = lua_tointeger(L, 3);
-            if(m == 1){
-                rect.right = (rect.right - rect.left) / 2 + rect.left;
+            std::string imgname;
+            RECT rect = rect_game;
+            double threshold = DEFAULT_THERSHOLD;
+
+            if(arg_counts == 1){
+                imgname = lua_tostring(L, 1);
             }
+            else if(arg_counts == 2){
+                imgname = lua_tostring(L, 1);
+                threshold = lua_tonumber(L, 2);
+            }
+            else if(arg_counts == 3){
+                imgname = lua_tostring(L, 1);
+                threshold = lua_tonumber(L, 2);
+                int m = lua_tointeger(L, 3);
+                if(m == 1){
+                    rect.right = (rect.right - rect.left) / 2 + rect.left;
+                }
+            }
+            else{
+                luaL_error(L, "参数错误");
+            }
+
+            bool bexist = script_inst->is_match_pic_in_screen(imgname, rect, threshold);
+            lua_pushboolean(L, bexist);
         }
-        else{
-            luaL_error(L, "参数错误");
+        catch(...)
+        {
+            luaL_error(L, "存在图片 异常");
         }
 
-        bool bexist = script_inst->is_match_pic_in_screen(imgname, rect, threshold);
-        lua_pushboolean(L, bexist);
         return 1;
     });
 
 
 
     REGLUAFUN(lua_status, "右击", [](lua_State* L)->int{
-        std::string imgname = lua_tostring(L, 1);
-        script_inst->rclick(imgname.c_str());
+        try{
+            std::string imgname = lua_tostring(L, 1);
+            script_inst->rclick(imgname.c_str());
+        }
+        catch(...){
+            luaL_error(L, "右击 异常");
+        }
+
         return 0;
     });
 
     REGLUAFUN(lua_status, "点击坐标", [](lua_State* L)->int{
-        int counts = lua_gettop(L);
 
-        if(counts != 2)
-            luaL_error(L, "点击坐标 参数数量错误");
+        try{
+            int counts = lua_gettop(L);
 
-        try
-        {
+            if(counts != 2)
+                luaL_error(L, "点击坐标 参数数量错误");
+
             int x = lua_tointeger(L, 1);
             int y = lua_tointeger(L, 2);
             script_inst->click(x, y);
         }
-        catch(...)
-        {
+        catch(...){
             luaL_error(L, "点击坐标 异常");
         }
 
@@ -895,14 +952,16 @@ void GameScript::regist_lua_fun()
                 script_inst->click(pt.x, pt.y);
             }
             else{
-                luaL_error(L, "可点击下划线没有匹配到");
+                //NOTE: 让流程继续, 解决鼠标指针正好挡住关闭, 又没法匹配到任务
+                //导致脚本中执行点击下划线时又重新来过的问题
+                //luaL_error(L, "可点击下划线没有匹配到");
             }
 
             script_inst->until_stop_run();
         }
         catch(...)
         {
-
+            luaL_error(L, "点击下划线 异常");
         }
 
         return 0;
@@ -939,10 +998,6 @@ void GameScript::regist_lua_fun()
                 luaL_error(L, "参数数量错误");
             }
         }
-        catch(std::exception& e)
-        {
-            luaL_error(L, e.what());
-        }
         catch(...)
         {
             luaL_error(L, "点击图片 异常");
@@ -952,7 +1007,13 @@ void GameScript::regist_lua_fun()
     });
 
     REGLUAFUN(lua_status, "等待停止奔跑", [](lua_State* L)->int{
-        script_inst->until_stop_run();
+        try{
+            script_inst->until_stop_run();
+        }
+        catch(...){
+            luaL_error(L, "等待停止奔跑 异常");
+        }
+
         return 0;
     });
 
@@ -982,6 +1043,7 @@ void GameScript::regist_lua_fun()
             bag_rect.bottom = SCREEN_HEIGHT;
             bag_rect.right = SCREEN_WIDTH;
 
+            //TODO: 做一个点击格子的功能
             std::string imgname = lua_tostring(L, 1);
             imgname.insert(0, "物品\\");
 
@@ -1027,22 +1089,37 @@ void GameScript::regist_lua_fun()
         return 0;
     });
 
+
     REGLUAFUN(lua_status, "点击小地图", [](lua_State* L)->int{
 
         try
         {
             //非递归互斥, 注意死锁问题
             int arg_counts = lua_gettop(L);
-            if(arg_counts == 0 || arg_counts > 3)
-            {
-                luaL_error(L, "点击小地图 参数错误");
+
+            //打开小地图
+            if(script_inst->is_match_pic_in_screen("世界按钮") == false){
+                script_inst->key_press("TAB");
             }
 
+            script_inst->wait_appear("世界按钮");
 
 
-            //点击坐标的
-            if(lua_type(L, 1) == LUA_TNUMBER)
-            {
+            //点击图片
+            if(arg_counts == 3){//TODO
+                std::string name = lua_tostring(L, 1);
+                name.insert(0, "小地图\\");
+                int offset_x = lua_tointeger(L, 2);
+                int offset_y = lua_tointeger(L, 3);
+                script_inst->click(name, offset_x, offset_y, DEFAULT_THERSHOLD, false);
+            }
+            else if(arg_counts == 1){
+                std::string name = lua_tostring(L, 1);
+                name.insert(0, "小地图\\");
+                script_inst->click(name.c_str(), DEFAULT_THERSHOLD, false);
+            }
+            else if(arg_counts == 2){
+
                 int map_x = lua_tointeger(L, 1);
                 int map_y = lua_tointeger(L, 2);
 
@@ -1056,10 +1133,6 @@ void GameScript::regist_lua_fun()
                     flag_pt.x += 7;
                     flag_pt.y += 2;
 
-                    script_inst->mhprintf(LOG_INFO, "map x in wnd:%d", flag_pt.x);
-                    script_inst->mhprintf(LOG_INFO, "map y in wnd:%d", flag_pt.y);
-
-
                     //
                     int ratio = 1;
                     int wnd_x = flag_pt.x + map_x * ratio;
@@ -1068,48 +1141,20 @@ void GameScript::regist_lua_fun()
                     script_inst->click(wnd_x, wnd_y);
 
                 }
-                else
-                {
+                else{
                     luaL_error(L, "check flag_map error!");
                 }
 
-
             }
-            else
-            {
-                //点击图片的
-                std::string name = lua_tostring(L, 1);
-                name.insert(0, "小地图\\");
-
-                //打开小地图
-                if(script_inst->is_match_pic_in_screen("世界按钮") == false)
-                {
-                    script_inst->key_press(VK_TAB);
-                }
-
-                script_inst->wait_appear("世界按钮");
-
-
-                //点击图片
-                int offset_x = 0;
-                int offset_y = 0;
-                if(arg_counts == 3){//TODO
-                    offset_x = lua_tointeger(L, 2);
-                    offset_y = lua_tointeger(L, 3);
-
-                    script_inst->click(name, offset_x, offset_y);
-                }
-                else{
-                    script_inst->click(name.c_str());
-                }
-
+            else{
+                luaL_error(L, "点击小地图 参数错误");
             }
 
 
             //关闭小地图
             if(script_inst->is_match_pic_in_screen("世界按钮"))
             {
-                script_inst->key_press(VK_TAB);
+                script_inst->key_press("TAB");
             }
 
             script_inst->until_stop_run();
@@ -1117,7 +1162,7 @@ void GameScript::regist_lua_fun()
         }
         catch(...)
         {
-
+            luaL_error(L, "点击小地图 异常");
         }
 
         return 0;
@@ -1265,11 +1310,15 @@ void GameScript::rclick(const char* image)
     }
 }
 
-void GameScript::click(const std::string& image, double threshold)
+void GameScript::click(const std::string& image, double threshold, bool check_exists)
 {
     POINT point;
     mhprintf(LOG_INFO, "点击图片 [%s]", image.c_str());
-    wait_appear(image, rect_game, threshold);
+
+    if(check_exists){
+        wait_appear(image, rect_game, threshold);
+    }
+
     if(is_match_pic_in_screen(image, point, rect_game, threshold)){
         click(point.x, point.y);
     }
@@ -1280,11 +1329,15 @@ void GameScript::click(const std::string& image, double threshold)
     }
 }
 
-void GameScript::click(const std::string& image, int offset_x, int offset_y, double thershold)
+void GameScript::click(const std::string& image, int offset_x, int offset_y, double thershold, bool check_exists)
 {
     POINT pt;
     mhprintf(LOG_INFO, "点击图片 [%s] offset_x:%d offset_y:%d", image.c_str(), offset_x, offset_y);
-    wait_appear(image, rect_game, thershold);
+
+    if(check_exists){
+        wait_appear(image, rect_game, thershold);
+    }
+
     if(is_match_pic_in_screen(image, pt, rect_game, thershold)){
         click(pt.x + offset_x, pt.y + offset_y);
     }
@@ -1635,13 +1688,13 @@ bool GameScript::is_match_pic_in_screen(std::string image, POINT &point, const R
     cv::Point matchLoc;
     double maxVal = match_picture(get_screen_data(rect), image, matchLoc);
 
-    qDebug() << QString::fromLocal8Bit("匹配: ")
-             << QString::fromLocal8Bit(image.c_str())
-             << maxVal
-             << rect.left
-             << rect.right
-             << rect.top
-             << rect.bottom;
+//    qDebug() << QString::fromLocal8Bit("匹配: ")
+//             << QString::fromLocal8Bit(image.c_str())
+//             << maxVal
+//             << rect.left
+//             << rect.right
+//             << rect.top
+//             << rect.bottom;
 
     if(maxVal > threshold)
     {
@@ -1834,46 +1887,35 @@ void GameScript::key_press(std::string key)
     std::lock_guard<std::mutex> locker(topwnd_mutex);
     top_wnd();
     if(key == "TAB"){
-        key_press(VK_TAB);
+        PostMessage(wnd, WM_KEYDOWN, VK_TAB, 0x000f0001);
+        PostMessage(wnd, WM_KEYUP, VK_TAB, 0xc00f0001);
     }
     else if(key == "F8"){
-        key_press(VK_F8);
+        PostMessage(wnd, WM_KEYDOWN, VK_F8, 0x00420001);
+        PostMessage(wnd, WM_KEYUP, VK_F8, 0xc0420001);
     }
     else if(key == "F9"){
-        key_press(VK_F9);
+        PostMessage(wnd, WM_KEYDOWN, VK_F9, 0x00430001);
+        PostMessage(wnd, WM_KEYUP, VK_F9, 0xc0430001);
     }
-    else if(key.find('+') == std::string::npos){
-        key_press(toupper(key[0]));
+    else if(key == "ALT+H"){
+        PostMessage(wnd, WM_SYSKEYDOWN, VK_MENU, 0x20380001);
+        PostMessage(wnd, WM_SYSKEYDOWN, 0x48, 0x20230001);
+        PostMessage(wnd, WM_KEYUP, VK_MENU, 0xc0380001);
+        PostMessage(wnd, WM_KEYUP, 0x48, 0xc0230001);
     }
-    else{
-        std::string f = key.substr(0, key.find('+'));
-        std::string a = key.substr(key.find('+') + 1, key.length());
-        if(f == "SHIFT")
-        {
-            mhprintf(LOG_NORMAL,"no shift..");
-        }
-        else if(f == "ALT")
-        {
-            keybd_event(VK_MENU, 0, 0, 0);
-            mhsleep(100);
-            keybd_event(toupper(a[0]),0, 0, 0);
-            keybd_event(toupper(a[0]),0, KEYEVENTF_KEYUP, 0);
-            mhsleep(100);
-            keybd_event(VK_MENU,0,KEYEVENTF_KEYUP,0);
-            mhsleep(100);
-        }
+    else if(key == "ALT+E"){
+        PostMessage(wnd, WM_SYSKEYDOWN, VK_MENU, 0x20380001);
+        PostMessage(wnd, WM_SYSKEYDOWN, 0x45, 0x20120001);
+        PostMessage(wnd, WM_KEYUP, VK_MENU, 0xc0380001);
+        PostMessage(wnd, WM_SYSKEYUP, 0x45, 0xe0120001);
     }
-
-}
-
-void GameScript::key_press(int vk)
-{
-    top_wnd();
-
-    ::PostMessageA(wnd, WM_KEYDOWN, vk, 0);
-    ::PostMessageA(wnd, WM_KEYUP, vk, 0);
-
-    mhsleep(WAIT_NORMAL);
+    else if(key == "ALT+G"){
+        PostMessage(wnd, WM_SYSKEYDOWN, VK_MENU, 0x60380001);
+        PostMessage(wnd, WM_SYSKEYDOWN, 0x47, 0x20220001);
+        PostMessage(wnd, WM_SYSKEYUP, 0x47, 0xe0220001);
+        PostMessage(wnd, WM_KEYUP, VK_MENU, 0xc0380001);
+    }
 }
 
 

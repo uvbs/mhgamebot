@@ -15,6 +15,8 @@
 #define WAIT_NORMAL 300			//平常等待的时辰
 #define WAIT_POSTMSG 300
 
+#define BAG_GIRD_SIZE 51        //背包格子大小
+
 //默认匹配程度
 #define DEFAULT_THERSHOLD 0.7
 
