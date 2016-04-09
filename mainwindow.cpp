@@ -6,6 +6,10 @@
 #include "optiondlg.h"
 
 
+extern std::mutex topwnd_mutex;
+
+
+
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow)
@@ -86,6 +90,7 @@ MainWindow::MainWindow(QWidget *parent) :
                 {
                     if(script)
                     {
+                        std::lock_guard<std::mutex> locker(topwnd_mutex);
                         script->top_wnd();
                         if(re->rightclick == true)
                         {
@@ -96,6 +101,7 @@ MainWindow::MainWindow(QWidget *parent) :
                             script->click(re->x, re->y);
                         }
 
+                        script->until_stop_run();
                     }
                     else
                     {
