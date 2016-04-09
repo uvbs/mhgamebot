@@ -149,6 +149,8 @@ private:
     int script_id;
     lua_State *lua_status;
 
+    std::string player_account; //玩家账户
+    std::string player_password; //玩家密码
     std::string player_name;   //玩家等级
     std::string player_level;
     std::list<std::string> lua_task_list;

@@ -19,6 +19,8 @@ std::map<lua_State*, GameScript*> GameScript::inst_map;
 
 //获得焦点的互斥
 std::mutex topwnd_mutex;
+
+
 cv::Mat GameScript::mouse1;
 cv::Mat GameScript::mouse2;
 cv::Mat GameScript::mouse3;
@@ -81,7 +83,9 @@ void GameScript::mhprintf(LOG_TYPE logtype,const char* msg_format, ...)
     msgbuf.insert(0, player_name + ": ");
 
     //转换编码
-    output_callback(logtype, QString::fromLocal8Bit(msgbuf.c_str()).toStdString().c_str());
+    if(output_callback){
+        output_callback(logtype, QString::fromLocal8Bit(msgbuf.c_str()).toStdString().c_str());
+    }
 
     va_end(va_args);
 }
@@ -245,17 +249,17 @@ double GameScript::_match_task(std::string imgname, cv::Point& matchLoc)
 //获取玩家状态
 PLAYER_STATUS GameScript::get_player_status()
 {
-    if(is_match_pic_in_screen("战斗中.png", rect_game, 0.8)){
+    if(is_match_pic_in_screen("战斗中", rect_game, 0.95)){
         return PLAYER_STATUS::COMBAT;
     }
-    else if(is_match_pic_in_screen("游戏内.png", rect_game, 0.8)){
+    else if(is_match_pic_in_screen("游戏内", rect_game, 0.95)){
         return PLAYER_STATUS::NORMAL;
     }
-//    else if(is_match_pic_in_screen("体验状态.png", rect_game, 0.8)){
+//    else if(is_match_pic_in_screen("体验状态.png", rect_game, 0.95)){
 //        mhprintf(LOG_INFO, "体验状态");
 //        return PLAYER_STATUS::NOTIME;
 //    }
-    else if(is_match_pic_in_screen("跳过动画.png", rect_game, 0.8)){
+    else if(is_match_pic_in_screen("跳过动画", rect_game, 0.95)){
         mhprintf(LOG_INFO, "跳过动画");
         return PLAYER_STATUS::GC;
     }
@@ -277,7 +281,7 @@ void GameScript::end_task()
 void GameScript::top_wnd()
 {
     ::SetForegroundWindow(wnd);
-    mhsleep(WAIT_NORMAL);
+    mhsleep(WAIT_NORMAL, false);
 }
 
 //包括红色和白色都处理成白色, 其余颜色处理成黑色
@@ -471,17 +475,17 @@ void GameScript::regist_lua_fun()
 
 
     REGLUAFUN(lua_status, "点击对话框", [](lua_State* L)->int{
-
-        bool mutexlocked = false;
-        int arg_counts = lua_gettop(L);
-        std::string img;
-        int offset_x = 0;
-        int offset_y = 0;
-        POINT pt;
-
-
         try
         {
+            int arg_counts = lua_gettop(L);
+            std::string img;
+            int offset_x = 0;
+            int offset_y = 0;
+            POINT pt;
+            std::vector<uchar> a1;
+            RECT click_area;
+            int times = 5;
+
 
             if(arg_counts == 1){
                 img = lua_tostring(L, 1);
@@ -504,47 +508,39 @@ void GameScript::regist_lua_fun()
             //等待对话框出现
             script_inst->wait_appear("关闭", rect_dlg_flag);
 
-            //获得互斥
-            topwnd_mutex.lock();
-            mutexlocked = true;
-            script_inst->top_wnd();
-
-            std::vector<uchar> a1;
-            RECT click_area;
-            int times = 5;
-
-            while(times)
             {
-                if(script_inst->is_match_pic_in_screen(img, pt)){
-                    int x = pt.x + offset_x;
-                    int y = pt.y + offset_y;
+                std::lock_guard<std::mutex> locker(topwnd_mutex);
+                script_inst->top_wnd();
 
-                    //获取这个点击区域的截图
-                    click_area.left = x - 30;
-                    click_area.right = x + 30;
-                    click_area.top = y - 30;
-                    click_area.bottom = y + 30;
-                    a1 = script_inst->get_screen_data(click_area);
-
-                    script_inst->click(x, y);
-                    break;
-                }
-                else
+                while(times)
                 {
-                    //点击空白区域
-                    if(script_inst->is_match_pic_in_screen("关闭", pt))
-                    {
-                        script_inst->click(pt.x - 100 - times * 5, pt.y + 100 + times * 5);
+                    if(script_inst->is_match_pic_in_screen(img, pt)){
+                        int x = pt.x + offset_x;
+                        int y = pt.y + offset_y;
+
+                        //获取这个点击区域的截图
+                        click_area.left = x - 30;
+                        click_area.right = x + 30;
+                        click_area.top = y - 30;
+                        click_area.bottom = y + 30;
+                        a1 = script_inst->get_screen_data(click_area);
+
+                        script_inst->click(x, y);
+                        break;
                     }
+                    else
+                    {
+                        //点击空白区域
+                        if(script_inst->is_match_pic_in_screen("关闭", pt))
+                        {
+                            script_inst->click(pt.x - 100 - times * 5, pt.y + 100 + times * 5);
+                        }
+                    }
+
+                    script_inst->mhsleep(WAIT_NORMAL);
+                    times--;
                 }
 
-                script_inst->mhsleep(WAIT_NORMAL);
-                times--;
-            }
-
-            if(mutexlocked)
-            {
-                topwnd_mutex.unlock();
             }
 
             if(times == 0)
@@ -557,11 +553,6 @@ void GameScript::regist_lua_fun()
         }
         catch(...)
         {
-            if(mutexlocked)
-            {
-                topwnd_mutex.unlock();
-            }
-
             luaL_error(L, "点击对话框 异常");
         }
 
@@ -670,7 +661,7 @@ void GameScript::regist_lua_fun()
         try
         {
             int time = lua_tointeger(L, 1);
-            script_inst->mhsleep(time * 1000);
+            script_inst->mhsleep(time * 1000, false);
         }
         catch(...)
         {
@@ -1180,17 +1171,17 @@ void GameScript::start(std::string script_name)
         mhprintf(LOG_NORMAL, "线程ID:%08x, 脚本执行", std::this_thread::get_id());
 
 
-        mhprintf(LOG_NORMAL, "设置窗口GWL_EXSTYLE");
-        LONG now_exstyle =  GetWindowLong(wnd, GWL_EXSTYLE);
-        if(now_exstyle != WS_EX_LAYERED)
-        {
-            //设置层叠窗口
-            SetWindowLong(wnd, GWL_EXSTYLE, now_exstyle);
-        }
-        else
-        {
-            mhprintf(LOG_INFO, "当前游戏窗口已经是GWL_EXSTYLE");
-        }
+//        mhprintf(LOG_NORMAL, "设置窗口GWL_EXSTYLE");
+//        LONG now_exstyle =  GetWindowLong(wnd, GWL_EXSTYLE);
+//        if(now_exstyle != WS_EX_LAYERED)
+//        {
+//            //设置层叠窗口
+//            SetWindowLong(wnd, GWL_EXSTYLE, now_exstyle);
+//        }
+//        else
+//        {
+//            mhprintf(LOG_INFO, "当前游戏窗口已经是GWL_EXSTYLE");
+//        }
 
 
         //初始化几个鼠标
@@ -1211,9 +1202,9 @@ void GameScript::start(std::string script_name)
         do_script("lualib/gamefun.lua");
 
 
-        //mhprintf(LOG_NORMAL,"进入游戏..");
+        mhprintf(LOG_NORMAL,"进入游戏..");
         //entry_game();
-        //mhprintf(LOG_NORMAL,"进去游戏..完成");
+        mhprintf(LOG_NORMAL,"进入游戏..ok");
 
         //title
         ::SetWindowTextA(wnd, player_name.c_str());
@@ -1230,7 +1221,7 @@ void GameScript::start(std::string script_name)
             }
             catch(exception_status &e){
                 mhprintf(LOG_WARNING, "%s", e.what());
-                mhsleep(WAIT_NORMAL);
+                mhsleep(WAIT_NORMAL, false);
             }
             catch(exception_xy &e){
                 mhprintf(LOG_WARNING, "%s", e.what());
@@ -1293,7 +1284,7 @@ void GameScript::input_password(const char* input)
         }
 
 
-        mhsleep(500);
+        mhsleep(WAIT_NORMAL, false);
     }
 
 }
@@ -1885,6 +1876,7 @@ void GameScript::click_nomove(int x, int y)
 void GameScript::key_press(std::string key)
 {
     std::lock_guard<std::mutex> locker(topwnd_mutex);
+    mhprintf(LOG_INFO, "按键 %s", key.c_str());
     top_wnd();
     if(key == "TAB"){
         PostMessage(wnd, WM_KEYDOWN, VK_TAB, 0x000f0001);
@@ -1916,6 +1908,21 @@ void GameScript::key_press(std::string key)
         PostMessage(wnd, WM_SYSKEYUP, 0x47, 0xe0220001);
         PostMessage(wnd, WM_KEYUP, VK_MENU, 0xc0380001);
     }
+    else if(key == "ALT+A"){
+        PostMessage(wnd, WM_SYSKEYDOWN, VK_MENU, 0x20380001);
+        PostMessage(wnd, WM_SYSKEYDOWN, 0x41, 0x201e0001);
+        PostMessage(wnd, WM_KEYUP, VK_MENU, 0xc0380001);
+        PostMessage(wnd, WM_KEYUP, 0x41, 0xc01e0001);
+    }
+    else if(key == "ALT+W")
+    {
+        PostMessage(wnd, WM_SYSKEYDOWN, VK_MENU, 0x20380001);
+        PostMessage(wnd, WM_SYSKEYDOWN, 0x57, 0x20110001);
+        PostMessage(wnd, WM_KEYUP, VK_MENU, 0xc0380001);
+        PostMessage(wnd, WM_KEYUP, 0x57, 0xc0110001);
+    }
+
+    mhsleep(WAIT_NORMAL, false);
 }
 
 
