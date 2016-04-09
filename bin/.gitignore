@@ -3,3 +3,5 @@
 *.db
 *.pdb
 *.exe
+*.ini
+/帐号列表.txt
