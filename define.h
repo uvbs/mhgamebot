@@ -17,12 +17,20 @@
 
 #define BAG_GIRD_SIZE 51        //背包格子大小
 
+#define MOUSE_LEFT_CLICK 1
+#define MOUSE_RIGHT_CLICK 0
+#define MOUSE_NO_CLICK 2
+
 //默认匹配程度
 #define DEFAULT_THERSHOLD 0.7
 
 
 //方便注册自己的函数
 #define REGLUAFUN(z, x, y) \
+    lua_register(z, x, y); \
+    mhprintf(LOG_NORMAL,"注册函数 %s", x);
+
+#define REGLUAFUN_P(z, x, y) \
     lua_register(z, x, y); \
     mhprintf(LOG_NORMAL,"注册函数 %s", x);
 
