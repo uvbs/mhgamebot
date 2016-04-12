@@ -63,6 +63,16 @@ public:
     bool check_offline();
 
     void set_player_name(std::string name);
+    void set_account(std::string acc){
+        mhprintf(LOG_INFO, "set account %s", acc.c_str());
+        player_account = acc;
+    }
+
+    void set_password(std::string pw){
+        mhprintf(LOG_INFO, "set password %s", pw.c_str());
+        player_password = pw;
+    }
+
     void call_lua_func(std::string func);
     void do_script(std::string filename);
     void end_task();
@@ -76,13 +86,15 @@ public:
 
     //右键点击, 攻击状态取消攻击
     void rclick(const char *image);
-    void click(int x, int y, int lbutton = 1);
+    void _click(int x, int y, int lbutton = MOUSE_LEFT_CLICK);
+    void click(int x, int y, int lbutton = MOUSE_LEFT_CLICK);
+    void only_move(int x, int y);
     void click(const std::string& image, double threshold = DEFAULT_THERSHOLD, bool check_exists = true);
     void click(const std::string &image, int offset_x, int offset_y, double thershold = DEFAULT_THERSHOLD, bool check_exists = true);
 
     void click_nofix(int x, int y);
     void click_nofix(const char *image);
-    void click_nomove(int x, int y);
+    void click_nomove(int x, int y, bool bclick = true);
 
     //发送按键
     void key_press(std::string key);
@@ -110,6 +122,7 @@ public:
 
     POINT get_cur_game_mouse();
     POINT get_cur_mouse();
+    void move_mouse_vec(int x, int y, int tar_x, int tar_y);
     void rand_move_mouse();
     void until_stop_run(int counts = 1000);
     void top_wnd();
@@ -120,7 +133,7 @@ public:
         return wnd;
     }
 
-
+    void cache_folder_png();
     const std::vector<uchar>& get_screen_data(const RECT& rect = rect_game);
 
 
@@ -132,10 +145,11 @@ public:
         recv_help = true;
     }
 
+    void pass_static_check();
 private:
     void get_mouse_vec(int x, int y, int x2, int y2, std::vector<int>& r);
 
-
+    void entry_game();
     bool recv_help;  //请求帮助被处理的标志
     std::string _script_name;
     PLAYER_STATUS last_player_status;
@@ -146,6 +160,7 @@ private:
 
     static std::map<lua_State*, GameScript*> inst_map;
     HWND wnd;
+    HANDLE game_process;
     int script_id;
     lua_State *lua_status;
 
@@ -173,8 +188,8 @@ private:
     bool match_task();
     double _match_task(std::string imgname, cv::Point& matchLoc);
 
-    void process_pic_task(cv::Mat &src, cv::Mat& result);
-    void process_pic_task_redline(cv::Mat& src, cv::Mat& result);
+    void process_pic_task(const cv::Mat &src, cv::Mat& result);
+    void process_pic_task_redline(const cv::Mat& src, cv::Mat& result);
     void process_pic_mouse(cv::Mat& src, cv::Mat& result);
     void process_pic_mouse1(cv::Mat& src, cv::Mat& result);
     void process_pic_door(cv::Mat& src);        //传送门
@@ -192,7 +207,7 @@ private:
     static cv::Mat mouse2;
     static cv::Mat mouse3;
     static cv::Mat mouse4;
-    static std::once_flag just_once_read;
+
 
     //这个映射来优化速度, 避免大量的读图片造成的IO
     //方式就是把所有图片缓存到内存中
