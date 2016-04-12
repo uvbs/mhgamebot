@@ -124,3 +124,12 @@ CvPoint getNextMinLoc(IplImage* result, int templatWidth,int templatHeight, doub
 
 
 }
+
+
+
+std::string int2hex(int i)
+{
+    std::stringstream stream;
+    stream << std::hex << i;
+    return stream.str();
+}
