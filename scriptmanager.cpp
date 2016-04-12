@@ -7,7 +7,7 @@
 #include <shlwapi.h>
 #include <boost/filesystem.hpp>
 #include <fstream>
-
+#include <QFileDialog>
 
 
 
@@ -129,17 +129,21 @@ const std::vector<HWND>& ScriptManager::get_game_window(const std::string& class
 {
 
     //清空窗口集合
-    game_wnds.clear();
+    //TODO
+    if(game_wnds.size() <= 0)
+    {
+        game_wnds.clear();
 
-    HWND wnd = FindWindowExA(NULL, NULL, classname.c_str(), NULL);
-    if(wnd != NULL){
-        for(;;){
-            game_wnds.push_back(wnd);
+        HWND wnd = FindWindowExA(NULL, NULL, classname.c_str(), NULL);
+        if(wnd != NULL){
+            for(;;){
+                game_wnds.push_back(wnd);
 
-            wnd = FindWindowExA(NULL, wnd, classname.c_str(), NULL);
-            if(wnd == NULL) break;
+                wnd = FindWindowExA(NULL, wnd, classname.c_str(), NULL);
+                if(wnd == NULL) break;
+            }
+
         }
-
     }
 
     return game_wnds;
@@ -216,6 +220,8 @@ void ScriptManager::list_window()
 
 std::vector<GameScript*>& ScriptManager::create_all_script()
 {
+    stop();
+
     get_game_window(GAME_WND_CLASS);
 
     //遍历这台电脑上所有游戏窗口
@@ -238,8 +244,9 @@ void ScriptManager::start()
     mhprintf(LOG_NORMAL, "开始执行脚本");
 
     //读取账户
-    read_accounts();
-    mhprintf(LOG_NORMAL, "读取到游戏账号: %d个", game_accounts.size());
+    //TODO
+    //read_accounts();
+    //mhprintf(LOG_NORMAL, "读取到游戏账号: %d个", game_accounts.size());
 
 
     hide_chat_window();
@@ -247,7 +254,13 @@ void ScriptManager::start()
 
     //mhprintf(LOG_NORMAL,"排序窗口");
     //list_window();
-    
+
+    auto it = game_accounts.begin();
+
+//    if(game_accounts.size() < game_wnds.size()){
+//        qDebug() << "game_accounts" << game_accounts.size();
+//        throw std::runtime_error("accounts small than game window!");
+//    }
 
     if(game_scripts.size() == 0){
         mhprintf(LOG_INFO, "没有找到游戏窗口");
@@ -275,15 +288,34 @@ void ScriptManager::read_accounts()
     game_accounts.clear();
 
     try{
-        std::fstream file("帐号.txt");
-        
-        char line[200];
-        file.getline(line, 200);
-        
-        std::string line_str(line);
-        std::string name = line_str.substr(0, line_str.find(','));
-        std::string password = line_str.substr(line_str.find(',')+1, line_str.length());
-        game_accounts[name] = password;    
+
+        QString fileName = QFileDialog::getOpenFileName(
+                               nullptr,
+                               QString::fromLocal8Bit("选择帐号列表"),
+                               "",
+                               QString::fromLocal8Bit("帐号 (*.txt)"));
+
+
+        QFile inputFile(fileName);
+        if (inputFile.open(QIODevice::ReadOnly))
+        {
+            QTextStream in(&inputFile);
+            while (!in.atEnd())
+            {
+                QString line = in.readLine();
+                std::string line_str(line.toStdString());
+                std::string name = line_str.substr(0, line_str.find(','));
+                std::string password = line_str.substr(line_str.find(',')+1, line_str.length());
+                qDebug() << name.c_str();
+                qDebug() << password.c_str();
+                game_accounts[name] = password;
+            }
+
+            inputFile.close();
+        }
+        else{
+            throw std::runtime_error("open file error!");
+        }
 
     }
     catch(...){
