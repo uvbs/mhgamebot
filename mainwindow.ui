@@ -92,6 +92,13 @@
        </widget>
       </item>
       <item>
+       <widget class="QPushButton" name="pushButton_testsrv">
+        <property name="text">
+         <string>服务器测试</string>
+        </property>
+       </widget>
+      </item>
+      <item>
        <spacer name="verticalSpacer">
         <property name="orientation">
          <enum>Qt::Vertical</enum>
@@ -176,6 +183,7 @@
     <addaction name="action_QT"/>
     <addaction name="action_dbg"/>
     <addaction name="action_close_all_game"/>
+    <addaction name="action_create_game"/>
    </widget>
    <addaction name="menu"/>
   </widget>
@@ -185,6 +193,10 @@
    </property>
   </widget>
   <action name="action_QT">
+   <property name="icon">
+    <iconset resource="icon.qrc">
+     <normaloff>:/resource/quickplayer.ico</normaloff>:/resource/quickplayer.ico</iconset>
+   </property>
    <property name="text">
     <string>关于QT</string>
    </property>
@@ -202,8 +214,21 @@
    </property>
   </action>
   <action name="action_close_all_game">
+   <property name="icon">
+    <iconset resource="icon.qrc">
+     <normaloff>:/resource/stop.ico</normaloff>:/resource/stop.ico</iconset>
+   </property>
    <property name="text">
     <string>强关所有游戏</string>
+   </property>
+  </action>
+  <action name="action_create_game">
+   <property name="icon">
+    <iconset resource="icon.qrc">
+     <normaloff>:/resource/smiley - happy.ico</normaloff>:/resource/smiley - happy.ico</iconset>
+   </property>
+   <property name="text">
+    <string>创建游戏</string>
    </property>
   </action>
  </widget>

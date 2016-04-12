@@ -52,6 +52,10 @@ private slots:
 
     void on_pushButton_reconnect_clicked();
 
+    void on_action_create_game_triggered();
+
+    void on_pushButton_testsrv_clicked();
+
 private:
     QLabel *status_text;
     Ui::MainWindow *ui;

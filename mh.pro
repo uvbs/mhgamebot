@@ -16,6 +16,8 @@ LIBS += user32.lib
 LIBS += shell32.lib
 LIBS += shlwapi.lib
 LIBS += advapi32.lib
+LIBS += dbghelp.lib
+
 
 INCLUDEPATH += D:/mylibrary/lua-5.3.2/src
 INCLUDEPATH += D:/mylibrary/boost_1_60_0
@@ -38,7 +40,7 @@ CONFIG(release, debug|release) {
     LIBS += libboost_regex-vc120-mt-1_60.lib
 }
 
-LIBS += dbghelp.lib
+
 
 
 

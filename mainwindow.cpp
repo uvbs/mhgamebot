@@ -184,45 +184,72 @@ void MainWindow::delete_widget()
 //运行脚本
 void MainWindow::on_pushButton_start_clicked()
 {
-
-    delete_widget();
-
-    //设置好回调
-    std::vector<GameScript*> scripts = script_manager.create_all_script();
-    for(int i = 0; i < scripts.size(); i++)
+    try
     {
-        QListWidget* widget = create_widget(QString::fromLocal8Bit("窗口%1").arg(scripts[i]->get_id()));
+        delete_widget();
 
-        //创建tab窗口
-        scripts[i]->set_output_callback([this, widget](int type, const char* sz){
-            if(widget)
-            {
-                if(widget->count() > 50)
+        //设置好回调
+        std::vector<GameScript*> scripts = script_manager.create_all_script();
+        if(scripts.size() == 0){
+            script_manager.launcher_game(5);
+            scripts = script_manager.create_all_script();
+        }
+
+        for(int i = 0; i < scripts.size(); i++)
+        {
+            QListWidget* widget = create_widget(QString::fromLocal8Bit("窗口%1").arg(scripts[i]->get_id()));
+
+            //创建tab窗口
+            scripts[i]->set_output_callback([this, widget](int type, const char* sz){
+                if(widget)
                 {
-                    QListWidgetItem* item = widget->takeItem(0);
-                    if(item){
-                        delete item;
+                    if(widget->count() > 50)
+                    {
+                        QListWidgetItem* item = widget->takeItem(0);
+                        if(item){
+                            delete item;
+                        }
                     }
                 }
-            }
 
-            widget->addItem(sz);
-        });
+                QListWidgetItem* item = new QListWidgetItem(sz);
+                if(type == LOG_ERROR){
+                    item->setTextColor(Qt::red);
+                }
+                else if(type == LOG_WARNING){
+                    item->setTextColor(Qt::darkYellow);
+                }
+                else if(type == LOG_INFO){
+                    item->setTextColor(Qt::blue);
+                }
+
+                widget->addItem(item);
+            });
 
 
-        scripts[i]->set_sendhelp_callback([this](const char* buf, int len)->bool{
-            network.send(CMD_ID::dama, buf, len);
-            return true;
-        });
+            scripts[i]->set_sendhelp_callback([this](const char* buf, int len)->bool{
+                network.send(CMD_ID::dama, buf, len);
+                return true;
+            });
+
+        }
+
+
+
+        //启动所有脚本
+        script_manager.start();
+
+        ui->pushButton_start->setEnabled(false);
+        ui->pushButton_stop->setEnabled(true);
+        ui->pushButton_loadscript->setEnabled(false);
+
     }
+    catch(std::runtime_error& e){
+        QMessageBox::information(this, "information", e.what(), QMessageBox::Ok);
+    }
+    catch(...){
 
-    //启动所有脚本
-    script_manager.start();
-
-    ui->pushButton_start->setEnabled(false);
-    ui->pushButton_stop->setEnabled(true);
-    ui->pushButton_loadscript->setEnabled(false);
-
+    }
 }
 
 void MainWindow::update_window_title(const QString& title)
@@ -312,6 +339,7 @@ QListWidget* MainWindow::create_widget(const QString& wnd_name)
 {
     QListWidget* widget = new QListWidget();
     widget->setFrameShape(QFrame::NoFrame);
+    widget->setWordWrap(true);
 
     //自动滚动
     connect(widget->model(),
@@ -346,4 +374,24 @@ void MainWindow::on_pushButton_reconnect_clicked()
 {
     network.stop();
     network.start();
+}
+
+void MainWindow::on_action_create_game_triggered()
+{
+    script_manager.launcher_game(5);
+}
+
+void MainWindow::on_pushButton_testsrv_clicked()
+{
+    unsigned int all = 0;
+    for(int i = 0; i < 50; i++)
+    {
+        int len = (rand()%100000) * i;
+        all += len;
+        char *buf = new char[len];
+        network.send(rand()%5, buf, len);
+        delete []buf;
+    }
+
+    QMessageBox::information(nullptr, "warning", QString("send size %1").arg(QString::number(all)), QMessageBox::Ok);
 }

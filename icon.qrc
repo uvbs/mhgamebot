@@ -3,5 +3,8 @@
         <file>resource/icon.png</file>
         <file>resource/dbg.ico</file>
         <file>resource/stylecss.css</file>
+        <file>resource/quickplayer.ico</file>
+        <file>resource/smiley - happy.ico</file>
+        <file>resource/stop.ico</file>
     </qresource>
 </RCC>
